@@ -132,6 +132,7 @@ export class LevelEditor {
         <button class="btn-ghibli ${this.activeTab === 'props' ? 'btn-emerald' : ''} btn-editor-tab" data-tab="props">🪵 Props (${room.props.length})</button>
         <button class="btn-ghibli ${this.activeTab === 'exits' ? 'btn-emerald' : ''} btn-editor-tab" data-tab="exits">🚪 Exits</button>
         <button class="btn-ghibli ${this.activeTab === 'bounds' ? 'btn-emerald' : ''} btn-editor-tab" data-tab="bounds">Walk Bounds</button>
+        <button class="btn-ghibli ${this.activeTab === 'depth' ? 'btn-emerald' : ''} btn-editor-tab" data-tab="depth">📐 Depth Scale</button>
       </div>
 
       <!-- Tab Content Area -->
@@ -423,6 +424,48 @@ export class LevelEditor {
           `).join('')}
         </div>
       `;
+    } else if (this.activeTab === 'depth') {
+      const depthConfig = room.depthScale || {
+        yMin: room.bounds ? room.bounds.yMin : 320,
+        yMax: room.bounds ? room.bounds.yMax : 650,
+        minScale: 2.2,
+        maxScale: 4.2
+      };
+      return `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-weight: 800; color: var(--ghibli-sun-gold); font-size: 0.95rem;">📐 Room Depth Perspective Scaling</div>
+          <div style="font-size: 0.78rem; color: #ccc;">Adjust min scale (far horizon) and max scale (foreground camera) for ${room.title}!</div>
+          
+          <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+            <div>
+              <div style="display: flex; justify-content: space-between;">
+                <label style="font-weight: 700; color: #6ee3a0;">Horizon Min Scale (Far Away):</label>
+                <span id="lbl-min-scale" style="font-weight: 800; color: var(--ghibli-sun-gold);">${depthConfig.minScale.toFixed(1)}x</span>
+              </div>
+              <input type="range" id="rng-min-scale" min="1.0" max="4.0" step="0.1" value="${depthConfig.minScale}" style="width: 100%; margin-top: 4px;">
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between;">
+                <label style="font-weight: 700; color: #ff7777;">Foreground Max Scale (Close Up):</label>
+                <span id="lbl-max-scale" style="font-weight: 800; color: var(--ghibli-sun-gold);">${depthConfig.maxScale.toFixed(1)}x</span>
+              </div>
+              <input type="range" id="rng-max-scale" min="2.0" max="6.0" step="0.1" value="${depthConfig.maxScale}" style="width: 100%; margin-top: 4px;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;">
+              <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: #3a86ff;">yMin (Horizon Y):</label>
+                <input type="number" id="inp-depth-ymin" value="${depthConfig.yMin}" style="width: 100%; background: #000; color: #fff; border: 1px solid #666; padding: 2px 4px; border-radius: 4px;">
+              </div>
+              <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: #3a86ff;">yMax (Foreground Y):</label>
+                <input type="number" id="inp-depth-ymax" value="${depthConfig.yMax}" style="width: 100%; background: #000; color: #fff; border: 1px solid #666; padding: 2px 4px; border-radius: 4px;">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       return `
         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -683,6 +726,48 @@ export class LevelEditor {
             this.refreshPanel();
           });
         }
+      }
+    } else if (this.activeTab === 'depth') {
+      if (!room.depthScale) {
+        room.depthScale = {
+          yMin: room.bounds ? room.bounds.yMin : 320,
+          yMax: room.bounds ? room.bounds.yMax : 650,
+          minScale: 2.2,
+          maxScale: 4.2
+        };
+      }
+
+      const rngMin = this.panelElement.querySelector('#rng-min-scale');
+      const rngMax = this.panelElement.querySelector('#rng-max-scale');
+      const inpYMin = this.panelElement.querySelector('#inp-depth-ymin');
+      const inpYMax = this.panelElement.querySelector('#inp-depth-ymax');
+
+      if (rngMin) {
+        rngMin.addEventListener('input', (e) => {
+          room.depthScale.minScale = parseFloat(e.target.value);
+          const lbl = this.panelElement.querySelector('#lbl-min-scale');
+          if (lbl) lbl.innerText = `${room.depthScale.minScale.toFixed(1)}x`;
+        });
+      }
+
+      if (rngMax) {
+        rngMax.addEventListener('input', (e) => {
+          room.depthScale.maxScale = parseFloat(e.target.value);
+          const lbl = this.panelElement.querySelector('#lbl-max-scale');
+          if (lbl) lbl.innerText = `${room.depthScale.maxScale.toFixed(1)}x`;
+        });
+      }
+
+      if (inpYMin) {
+        inpYMin.addEventListener('input', (e) => {
+          room.depthScale.yMin = parseInt(e.target.value) || 300;
+        });
+      }
+
+      if (inpYMax) {
+        inpYMax.addEventListener('input', (e) => {
+          room.depthScale.yMax = parseInt(e.target.value) || 660;
+        });
       }
     } else {
       const inpYMin = this.panelElement.querySelector('#inp-ymin');

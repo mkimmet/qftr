@@ -41,6 +41,7 @@ export class ExplorationScene {
         bgImage: this.bgImages.town_square,
         desc: 'A bustling medieval cobble square with a marble fountain, tavern notices, and merchant stalls.',
         bounds: { xMin: 50, xMax: 1230, yMin: 320, yMax: 650 },
+        depthScale: { yMin: 320, yMax: 650, minScale: 2.2, maxScale: 4.4 },
         exits: {
           east: { room: 'forest_path', spawnX: 80, spawnY: 450, msg: 'Traveled east to Mistvale Forest.' },
           north: { room: 'guild_hall', spawnX: 640, spawnY: 600, msg: 'Entered Adventurers Guild Hall.' },
@@ -69,6 +70,7 @@ export class ExplorationScene {
         bgImage: this.bgImages.magic_shop,
         desc: 'A mystical chamber filled with glowing potions, ancient scrolls, and floating crystals.',
         bounds: { xMin: 100, xMax: 1180, yMin: 340, yMax: 640 },
+        depthScale: { yMin: 340, yMax: 640, minScale: 3.2, maxScale: 3.8 },
         exits: {
           east: { room: 'town_square', spawnX: 300, spawnY: 450, msg: 'Returned to Town Square.' }
         },
@@ -85,7 +87,8 @@ export class ExplorationScene {
         title: 'Spielburg Adventurers Guild Hall',
         bgImage: this.bgImages.guild_hall,
         desc: 'A sturdy timber hall hung with beast trophies, guild banners, and training dummies.',
-        bounds: { xMin: 120, xMax: 1140, yMin: 360, yMax: 640 },
+        bounds: { xMin: 100, xMax: 1180, yMin: 340, yMax: 620 },
+        depthScale: { yMin: 340, yMax: 620, minScale: 3.2, maxScale: 3.8 },
         exits: {
           south: { room: 'town_square', spawnX: 640, spawnY: 340, msg: 'Returned to Town Square.' }
         },
@@ -103,6 +106,7 @@ export class ExplorationScene {
         bgImage: this.bgImages.forest_path,
         desc: 'A dense sun-dappled forest path. An ancient Rune Sun Gate blocks entry to Whispering Cavern.',
         bounds: { xMin: 50, xMax: 1230, yMin: 320, yMax: 650 },
+        depthScale: { yMin: 300, yMax: 650, minScale: 1.8, maxScale: 4.6 },
         exits: {
           west: { room: 'town_square', spawnX: 1140, spawnY: 450, msg: 'Returned to Town Square.' }
         },

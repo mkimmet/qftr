@@ -117,6 +117,17 @@ export class Renderer2D {
       type: 'hero',
       depthY: heroDepthY,
       render: () => {
+        const depthConfig = sceneData.depthScale || {
+          yMin: sceneData.bounds ? sceneData.bounds.yMin : 320,
+          yMax: sceneData.bounds ? sceneData.bounds.yMax : 650,
+          minScale: 2.2,
+          maxScale: 4.2
+        };
+
+        const range = Math.max(1, depthConfig.yMax - depthConfig.yMin);
+        const t = Math.max(0, Math.min(1, (playerState.y - depthConfig.yMin) / range));
+        const heroDrawScale = depthConfig.minScale + t * (depthConfig.maxScale - depthConfig.minScale);
+
         this.renderHeroPaperdoll(
           playerState.x,
           playerState.y,
@@ -125,7 +136,8 @@ export class Renderer2D {
           playerState.heroClass || 'Fighter',
           playerState.isStealth || false,
           playerState.cloakColor || null,
-          playerState.facingDir || 'down'
+          playerState.facingDir || 'down',
+          heroDrawScale
         );
       }
     });
@@ -509,8 +521,8 @@ export class Renderer2D {
     this.ctx.restore();
   }
 
-  renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null, facingDir = 'down') {
-    this.heroSpriteSheet.drawHeroSprite(this.ctx, x, y, facingDir, isWalking, isStealth, 3.6, heroClass || 'Fighter', cloakColor);
+  renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null, facingDir = 'down', drawScale = 3.6) {
+    this.heroSpriteSheet.drawHeroSprite(this.ctx, x, y, facingDir, isWalking, isStealth, drawScale, heroClass || 'Fighter', cloakColor);
   }
 
   renderNPCSorceress(x, y) {

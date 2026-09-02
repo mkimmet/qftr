@@ -147,6 +147,16 @@ class GameEngine {
     }
 
     // Top HUD Buttons
+    const scoreDisplay = document.getElementById('sierra-score-display');
+    if (scoreDisplay) {
+      scoreDisplay.style.cursor = 'pointer';
+      scoreDisplay.title = 'Click to view Sierra Quest Points Breakdown';
+      scoreDisplay.addEventListener('click', () => {
+        synth.playClick();
+        this.showScoreBreakdownModal();
+      });
+    }
+
     document.getElementById('btn-open-quests').addEventListener('click', () => {
       synth.playClick();
       this.questSystem.showQuestLogModal();
@@ -759,6 +769,56 @@ class GameEngine {
 
     dialogueLayer.querySelector('#btn-close-inv').addEventListener('click', () => {
       dialogueLayer.style.display = 'none';
+    });
+  }
+
+  showScoreBreakdownModal() {
+    const dialogueLayer = document.getElementById('dialogue-layer');
+    dialogueLayer.style.display = 'flex';
+
+    const rankTitle = this.sierraScoreSystem.getRankTitle();
+    const logs = this.sierraScoreSystem.scoreLog;
+
+    dialogueLayer.innerHTML = `
+      <div class="dialogue-modal parchment-card" style="width: 740px; max-width: 95vw;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--parchment-border); padding-bottom: 10px; margin-bottom: 14px;">
+          <div>
+            <span style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: var(--text-dark);">📜 Sierra Score & Quest Points Breakdown</span>
+            <div style="font-size: 0.85rem; color: #8c5a14; font-weight: 700;">Hero Rank: <span style="color: #2b4c7e;">${rankTitle}</span></div>
+          </div>
+          <span style="font-weight: 800; font-size: 1.2rem; color: var(--ghibli-sun-gold); background: rgba(0, 0, 0, 0.7); padding: 6px 16px; border-radius: 20px; border: 1px solid var(--parchment-border);">
+            Score: ${this.sierraScoreSystem.score} / ${this.sierraScoreSystem.maxScore}
+          </span>
+        </div>
+
+        <!-- Point History Log List -->
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px; margin-bottom: 16px;">
+          ${logs.length > 0 ? logs.map(item => `
+            <div style="background: rgba(255, 255, 255, 0.6); border: 1px solid var(--parchment-border); padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-weight: 800; font-size: 0.95rem; color: #291e14;">${item.reason}</span>
+                <div style="font-size: 0.78rem; color: #7a5a3a; margin-top: 2px;">Recorded at ${item.timestamp}</div>
+              </div>
+              <span style="font-family: var(--font-heading); font-weight: 800; font-size: 1.05rem; color: #387654; background: rgba(78, 163, 115, 0.2); padding: 3px 10px; border-radius: 12px; border: 1px solid #4ea373;">
+                +${item.points} pts
+              </span>
+            </div>
+          `).join('') : `
+            <div style="text-align: center; padding: 30px; font-size: 1rem; color: #666; font-style: italic;">
+              No Sierra points recorded yet. Explore Spielburg Valley and complete quest bounties to earn points!
+            </div>
+          `}
+        </div>
+
+        <!-- Close Button -->
+        <button id="btn-close-score-modal" class="btn-ghibli" style="width: 100%; height: 42px; font-size: 1rem; justify-content: center;">Close Score Breakdown</button>
+      </div>
+    `;
+
+    dialogueLayer.querySelector('#btn-close-score-modal').addEventListener('click', () => {
+      dialogueLayer.style.display = 'none';
+      synth.playClick();
     });
   }
 
