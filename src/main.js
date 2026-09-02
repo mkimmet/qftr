@@ -73,6 +73,7 @@ class GameEngine {
       walkPath: [],
       walkStep: 0,
       walkSpeed: 3.5,
+      facingDir: 'down',
       heroClass: 'Fighter',
       onArrivalCallback: null
     };
@@ -315,6 +316,28 @@ class GameEngine {
     const dx = nextWp.x - this.playerState.x;
     const dy = nextWp.y - this.playerState.y;
     const dist = Math.hypot(dx, dy);
+
+    // Calculate 8-Directional Facing Angle
+    const angleRad = Math.atan2(dy, dx);
+    const angleDeg = angleRad * (180 / Math.PI); // -180..180
+
+    if (angleDeg >= -22.5 && angleDeg < 22.5) {
+      this.playerState.facingDir = 'right';
+    } else if (angleDeg >= 22.5 && angleDeg < 67.5) {
+      this.playerState.facingDir = 'down_right';
+    } else if (angleDeg >= 67.5 && angleDeg < 112.5) {
+      this.playerState.facingDir = 'down';
+    } else if (angleDeg >= 112.5 && angleDeg < 157.5) {
+      this.playerState.facingDir = 'down_left';
+    } else if (angleDeg >= 157.5 || angleDeg < -157.5) {
+      this.playerState.facingDir = 'left';
+    } else if (angleDeg >= -157.5 && angleDeg < -112.5) {
+      this.playerState.facingDir = 'up_left';
+    } else if (angleDeg >= -112.5 && angleDeg < -67.5) {
+      this.playerState.facingDir = 'up';
+    } else if (angleDeg >= -67.5 && angleDeg < -22.5) {
+      this.playerState.facingDir = 'up_right';
+    }
 
     if (dist <= this.playerState.walkSpeed) {
       this.playerState.x = nextWp.x;

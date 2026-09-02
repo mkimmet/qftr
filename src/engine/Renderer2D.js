@@ -8,12 +8,10 @@ export class Renderer2D {
     this.width = canvas.width;
     this.height = canvas.height;
 
-    // Sprite Animation Engine
-    this.heroWalkAnim = new SpriteAnimation('/media_1788281528065.jpg', {
-      frameWidth: 200,
-      frameHeight: 300,
-      totalFrames: 4,
-      fps: 8
+    // 8-Directional 3-State Hero Sprite Sheet Animation Engine
+    this.heroSpriteSheet = new SpriteAnimation({
+      src: '/hero_spritesheet.png',
+      fps: 10
     });
 
     this.particles = [];
@@ -217,9 +215,7 @@ export class Renderer2D {
       depthEntities.push({
         y: playerState.y || 450,
         render: () => {
-          if (playerState.isWalking) {
-            this.heroWalkAnim.update();
-          }
+          this.heroSpriteSheet.update();
           this.renderHeroPaperdoll(
             playerState.x,
             playerState.y,
@@ -227,7 +223,8 @@ export class Renderer2D {
             playerState.walkStep,
             playerState.heroClass,
             playerState.isStealth,
-            playerState.cloakColor
+            playerState.cloakColor,
+            playerState.facingDir || 'down'
           );
         }
       });
@@ -326,68 +323,8 @@ export class Renderer2D {
     this.ctx.restore();
   }
 
-  renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null) {
-    this.ctx.save();
-
-    if (isStealth) {
-      this.ctx.globalAlpha = 0.5;
-    }
-
-    this.ctx.fillStyle = 'rgba(10, 20, 15, 0.45)';
-    this.ctx.beginPath();
-    this.ctx.ellipse(x, y + 2, 22, 10, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    const bounceY = isWalking ? Math.abs(Math.sin(walkStep * 0.2)) * -6 : 0;
-    const posY = y + bounceY;
-
-    let defaultCloak = heroClass === 'Magic User' ? '#2b4c7e' : (heroClass === 'Thief' ? '#3d342b' : (heroClass.includes('Paladin') ? '#f4be42' : '#8b2626'));
-    if (cloakColor) defaultCloak = cloakColor;
-
-    this.ctx.fillStyle = isStealth ? '#1a2421' : defaultCloak;
-    this.ctx.beginPath();
-    this.ctx.moveTo(x - 16, posY - 35);
-    this.ctx.lineTo(x + 16, posY - 35);
-    this.ctx.lineTo(x + 22, posY - 4);
-    this.ctx.lineTo(x - 22, posY - 4);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.strokeStyle = '#1a1008';
-    this.ctx.lineWidth = 2;
-    this.ctx.stroke();
-
-    this.ctx.fillStyle = isStealth ? '#2d3b36' : (heroClass === 'Fighter' ? '#4ea373' : (heroClass === 'Thief' ? '#d97724' : '#6b4ba3'));
-    this.ctx.fillRect(x - 12, posY - 45, 24, 30);
-    this.ctx.strokeRect(x - 12, posY - 45, 24, 30);
-
-    this.ctx.fillStyle = '#f4be42';
-    this.ctx.fillRect(x - 12, posY - 25, 24, 5);
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillRect(x - 4, posY - 26, 8, 7);
-
-    this.ctx.fillStyle = '#ffdbac';
-    this.ctx.beginPath();
-    this.ctx.arc(x, posY - 58, 14, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    this.ctx.fillStyle = '#222';
-    this.ctx.fillRect(x - 5, posY - 60, 3, 4);
-    this.ctx.fillRect(x + 2, posY - 60, 3, 4);
-
-    this.ctx.fillStyle = '#e8a838';
-    this.ctx.beginPath();
-    this.ctx.arc(x, posY - 64, 15, Math.PI, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.font = '16px sans-serif';
-    if (isStealth) this.ctx.fillText('🥷', x + 12, posY - 35);
-    else if (heroClass.includes('Paladin')) this.ctx.fillText('🛡️', x + 12, posY - 35);
-    else if (heroClass === 'Fighter') this.ctx.fillText('⚔️', x + 12, posY - 35);
-    else if (heroClass === 'Magic User') this.ctx.fillText('🔮', x + 12, posY - 35);
-    else if (heroClass === 'Thief') this.ctx.fillText('🗡️', x + 12, posY - 35);
-
-    this.ctx.restore();
+  renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null, facingDir = 'down') {
+    this.heroSpriteSheet.drawHeroSprite(this.ctx, x, y, facingDir, isWalking, isStealth, 4.5, heroClass || 'Fighter', cloakColor);
   }
 
   renderNPCSorceress(x, y) {
