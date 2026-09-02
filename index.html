@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quest for the Realm - Sierra Hybrid RPG Engine</title>
+  <link rel="stylesheet" href="/src/styles/ghibli.css">
+</head>
+<body>
+  <div id="app">
+    <div id="game-container">
+      <canvas id="game-canvas" width="1280" height="720" class="cursor-walk"></canvas>
+      
+      <!-- Sierra Auto-Hiding Slide-Down Top Icon Bar -->
+      <div id="top-hud-layer" class="sierra-top-bar" style="display: none;">
+        <!-- Top Row: Hero Info, Gauges & Sierra Score -->
+        <div class="sierra-icon-row">
+          <div class="sierra-icon-group">
+            <span id="player-hero-name" style="font-family: var(--font-heading); font-weight: 700; color: var(--ghibli-sun-gold); font-size: 0.95rem;">Valen</span>
+            <span id="player-hero-class" style="color: #a3c2b0; font-size: 0.82rem;">[Fighter]</span>
+          </div>
+
+          <div class="sierra-icon-group">
+            <div class="hud-stat" title="Health Points">
+              <span style="color: var(--stat-health); font-size: 0.8rem;">HP</span>
+              <div class="stat-bar-container" style="width: 75px;"><div id="hp-bar-fill" class="stat-bar-fill health" style="width: 100%;"></div></div>
+              <span id="hp-text" style="font-size: 0.78rem; min-width: 40px;">50/50</span>
+            </div>
+            <div class="hud-stat" title="Mana Points">
+              <span style="color: var(--stat-mana); font-size: 0.8rem;">MP</span>
+              <div class="stat-bar-container" style="width: 75px;"><div id="mp-bar-fill" class="stat-bar-fill mana" style="width: 100%;"></div></div>
+              <span id="mp-text" style="font-size: 0.78rem; min-width: 40px;">20/20</span>
+            </div>
+            <div class="hud-stat" title="Stamina Points">
+              <span style="color: var(--stat-stamina); font-size: 0.8rem;">ST</span>
+              <div class="stat-bar-container" style="width: 75px;"><div id="stamina-bar-fill" class="stat-bar-fill stamina" style="width: 100%;"></div></div>
+              <span id="stamina-text" style="font-size: 0.78rem; min-width: 40px;">40/40</span>
+            </div>
+          </div>
+
+          <!-- Sierra Score & Time Display -->
+          <div class="sierra-icon-group">
+            <div class="hud-stat" style="color: var(--ghibli-sun-gold); background: rgba(0,0,0,0.5); padding: 3px 10px; border-radius: 6px; border: 1px solid var(--parchment-border); font-size: 0.82rem; font-weight: 800;">
+              <span id="sierra-score-display">Score: 0 / 300</span>
+            </div>
+            <div class="hud-stat" style="color: #ffffff; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--parchment-border); font-size: 0.82rem;">
+              <span id="time-display">Day 1 - 09:00 AM</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Sierra Verbs & Action Icon Buttons -->
+        <div class="sierra-icon-row" style="border-top: 1px solid rgba(140, 109, 70, 0.3); padding-top: 5px;">
+          <!-- Sierra Verb Icons -->
+          <div class="sierra-icon-group">
+            <button class="icon-btn verb-btn active" data-verb="walk" title="Walk Cursor">🏃 WALK</button>
+            <button class="icon-btn verb-btn" data-verb="look" title="Look Cursor">👁️ LOOK</button>
+            <button class="icon-btn verb-btn" data-verb="talk" title="Talk Cursor">💬 TALK</button>
+            <button class="icon-btn verb-btn" data-verb="do" title="Do Cursor">✋ DO</button>
+            <button class="icon-btn verb-btn" data-verb="cast" title="Cast Cursor">🪄 CAST</button>
+          </div>
+
+          <!-- Hero System & Tool Icons -->
+          <div class="sierra-icon-group">
+            <button id="btn-toggle-sneak" class="icon-btn" title="Toggle Stealth Mode">🥷 Sneak</button>
+            <button id="btn-open-inventory" class="icon-btn" title="Satchel Inventory Pouch">🎒 Items</button>
+            <button id="btn-open-quests" class="icon-btn" title="Quest Log Book">📜 Quests</button>
+            <button id="btn-open-spells" class="icon-btn" title="Spellbook Grimoire">✨ Spells</button>
+            <button id="btn-open-stats" class="icon-btn" title="Character Stats Sheet">📊 Stats</button>
+            <button id="btn-open-hints" class="icon-btn" style="background: linear-gradient(180deg, #4ea373 0%, #387654 100%); color: #fff; border-color: #1e452e;" title="Sierra Adventurer Hint Journal">📖 Hints</button>
+            <button id="btn-save-game" class="icon-btn" title="Sierra Save Game">💾 Save</button>
+            <button id="btn-load-game" class="icon-btn" title="Sierra Load Game">📂 Load</button>
+            <button id="btn-dev-editor" class="icon-btn" style="background: linear-gradient(180deg, #d97724 0%, #a85208 100%); color: #fff; border-color: #592303;" title="In-Game Sierra Level & World Editor">🛠️ Dev</button>
+            <button id="btn-admin-studio" class="icon-btn" style="background: linear-gradient(180deg, #802bb0 0%, #4c1170 100%); color: #fff; border-color: #27063b;" title="Dedicated Realm Admin World & JSON Studio">👑 Admin</button>
+            <button id="btn-purge-rooms" class="icon-btn" style="background: linear-gradient(180deg, #a83232 0%, #661818 100%); color: #fff; border-color: #400a0a;" title="Clear Saved Room Overrides & Restore Defaults">🧹 Reset Rooms</button>
+            <button id="btn-rest" class="icon-btn" title="Rest 8 Hours">🌙 Rest</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dialogue Modal Layer -->
+      <div id="dialogue-layer" style="display: none;"></div>
+
+      <!-- Combat Control Layer -->
+      <div id="combat-hud-layer" class="ui-overlay" style="display: none;"></div>
+
+      <!-- Character Creator Overlay -->
+      <div id="char-create-layer" class="char-create-screen"></div>
+
+      <!-- Notification Toast Container -->
+      <div id="toast-container"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
