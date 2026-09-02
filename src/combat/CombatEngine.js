@@ -150,7 +150,9 @@ export class CombatEngine {
           { col: col, row: row - 1 },
           { col: col, row: row + 1 },
           { col: col - 1, row: row - 1 },
-          { col: col + 1, row: row + 1 }
+          { col: col + 1, row: row + 1 },
+          { col: col + 1, row: row - 1 },
+          { col: col - 1, row: row + 1 }
         ];
         
         let bestPath = [];

@@ -374,10 +374,11 @@ export class Renderer2D {
           let isWalking = false;
           let facingDir = ent.facingDir || 'right';
 
-          if (dist > 2) {
+          const stepSpeed = 4.5;
+          if (dist > stepSpeed) {
             isWalking = true;
-            ent.renderX += (dx / dist) * 4.5;
-            ent.renderY += (dy / dist) * 4.5;
+            ent.renderX += (dx / dist) * stepSpeed;
+            ent.renderY += (dy / dist) * stepSpeed;
 
             const angle = Math.atan2(dy, dx);
             if (angle > -Math.PI / 8 && angle <= Math.PI / 8) facingDir = 'right';
@@ -390,6 +391,7 @@ export class Renderer2D {
             else facingDir = 'left';
             ent.facingDir = facingDir;
           } else {
+            isWalking = false;
             ent.renderX = targetPxX;
             ent.renderY = targetPxY;
           }
@@ -397,8 +399,14 @@ export class Renderer2D {
           if (isWalking) {
             this.heroSpriteSheet.update();
           }
+
+          // Calculate smooth depth scale gradually from interpolated renderY position
+          const gridYMin = 330;
+          const gridYMax = 660;
+          const normY = Math.max(0, Math.min(1, (ent.renderY - gridYMin) / (gridYMax - gridYMin)));
+          const drawScale = 1.9 + normY * 2.2;
           const heroClass = (this.gameEngine && this.gameEngine.statSystem) ? this.gameEngine.statSystem.heroClass : 'Fighter';
-          const drawScale = 2.2 * quad.scale;
+          
           this.heroSpriteSheet.drawHeroSprite(
             this.ctx,
             Math.round(ent.renderX),
@@ -413,38 +421,45 @@ export class Renderer2D {
 
           // Hero Health Bar
           const hpPct = Math.max(0, ent.hp / ent.maxHp);
+          const barW = Math.round(40 * (drawScale / 3.0));
           this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          this.ctx.fillRect(ent.renderX - 25, ent.renderY - 74, 50, 6);
+          this.ctx.fillRect(ent.renderX - barW / 2, ent.renderY - Math.round(24 * drawScale), barW, 6);
           this.ctx.fillStyle = '#4ea373';
-          this.ctx.fillRect(ent.renderX - 25, ent.renderY - 74, 50 * hpPct, 6);
+          this.ctx.fillRect(ent.renderX - barW / 2, ent.renderY - Math.round(24 * drawScale), barW * hpPct, 6);
 
         } else {
+          const gridYMin = 330;
+          const gridYMax = 660;
+          const normY = Math.max(0, Math.min(1, (targetPxY - gridYMin) / (gridYMax - gridYMin)));
+          const drawScale = 1.9 + normY * 2.2;
+
           // Render Enemies
           if (ent.name && ent.name.includes('Chieftain')) {
-            this.renderMonsterChieftain(targetPxX, targetPxY + 20);
+            this.renderMonsterChieftain(targetPxX, targetPxY + 20, drawScale);
           } else if (ent.name && ent.name.includes('Arch-Lich')) {
-            this.renderMonsterArchLich(targetPxX, targetPxY + 20);
+            this.renderMonsterArchLich(targetPxX, targetPxY + 20, drawScale);
           } else {
             this.ctx.save();
             this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
             this.ctx.beginPath();
-            this.ctx.ellipse(targetPxX, targetPxY + 20, 22 * quad.scale, 9 * quad.scale, 0, 0, Math.PI * 2);
+            this.ctx.ellipse(targetPxX, targetPxY + 20, 20 * (drawScale / 3.0), 8 * (drawScale / 3.0), 0, 0, Math.PI * 2);
             this.ctx.fill();
 
-            const monsterFontSize = Math.round(36 * quad.scale);
+            const monsterFontSize = Math.round(28 + normY * 32);
             this.ctx.font = `${monsterFontSize}px sans-serif`;
             this.ctx.textAlign = 'center';
             this.ctx.fillText(ent.portrait || '👺', targetPxX, targetPxY + 14);
 
             this.ctx.font = '700 12px "Cinzel", serif';
             this.ctx.fillStyle = '#f4be42';
-            this.ctx.fillText(ent.name, targetPxX, targetPxY - 32);
+            this.ctx.fillText(ent.name, targetPxX, targetPxY - Math.round(18 * drawScale));
 
             const hpPct = Math.max(0, ent.hp / ent.maxHp);
+            const barW = Math.round(40 * (drawScale / 3.0));
             this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            this.ctx.fillRect(targetPxX - 25, targetPxY - 26, 50, 6);
+            this.ctx.fillRect(targetPxX - barW / 2, targetPxY - Math.round(14 * drawScale), barW, 6);
             this.ctx.fillStyle = '#d64545';
-            this.ctx.fillRect(targetPxX - 25, targetPxY - 26, 50 * hpPct, 6);
+            this.ctx.fillRect(targetPxX - barW / 2, targetPxY - Math.round(14 * drawScale), barW * hpPct, 6);
             this.ctx.restore();
           }
         }
@@ -538,37 +553,39 @@ export class Renderer2D {
     this.ctx.restore();
   }
 
-  renderMonsterChieftain(x, y) {
+  renderMonsterChieftain(x, y, drawScale = 3.0) {
     this.ctx.save();
     this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
     this.ctx.beginPath();
-    this.ctx.ellipse(x, y, 24, 10, 0, 0, Math.PI * 2);
+    this.ctx.ellipse(x, y, 22 * (drawScale / 3.0), 9 * (drawScale / 3.0), 0, 0, Math.PI * 2);
     this.ctx.fill();
 
-    this.ctx.font = '44px sans-serif';
+    const fontSize = Math.round(38 * (drawScale / 3.0));
+    this.ctx.font = `${fontSize}px sans-serif`;
     this.ctx.textAlign = 'center';
     this.ctx.fillText('👑', x, y - 10);
 
     this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
     this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.fillText('👑 Goblin Chieftain', x, y - 56);
+    this.ctx.fillText('👑 Goblin Chieftain', x, y - Math.round(18 * drawScale));
     this.ctx.restore();
   }
 
-  renderMonsterArchLich(x, y) {
+  renderMonsterArchLich(x, y, drawScale = 3.0) {
     this.ctx.save();
     this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
     this.ctx.beginPath();
-    this.ctx.ellipse(x, y, 26, 11, 0, 0, Math.PI * 2);
+    this.ctx.ellipse(x, y, 24 * (drawScale / 3.0), 10 * (drawScale / 3.0), 0, 0, Math.PI * 2);
     this.ctx.fill();
 
-    this.ctx.font = '44px sans-serif';
+    const fontSize = Math.round(42 * (drawScale / 3.0));
+    this.ctx.font = `${fontSize}px sans-serif`;
     this.ctx.textAlign = 'center';
     this.ctx.fillText('💀', x, y - 10);
 
     this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
     this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.fillText('💀 Arch-Lich Malakor', x, y - 56);
+    this.ctx.fillText('🔮 Arch-Lich Malakor', x, y - Math.round(18 * drawScale));
     this.ctx.restore();
   }
 

@@ -260,40 +260,39 @@ class GameEngine {
         let clickedCol = -1;
         let clickedRow = -1;
 
-        // 1. First check if click hit any Enemy Sprite Body directly!
-        if (this.combatEngine && this.combatEngine.entities) {
+        // 1. Check ground tile perspective quads first for accurate floor tile clicks
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 10; c++) {
+            const quad = this.renderer.getPerspectiveTileQuad(c, r);
+            if (
+              y >= quad.topL.y &&
+              y <= quad.botL.y &&
+              x >= Math.min(quad.topL.x, quad.botL.x) &&
+              x <= Math.max(quad.topR.x, quad.botR.x)
+            ) {
+              clickedCol = c;
+              clickedRow = r;
+              break;
+            }
+          }
+          if (clickedCol !== -1) break;
+        }
+
+        // 2. If click landed outside ground grid, check tight monster sprite body bounds
+        if (clickedCol === -1 && this.combatEngine && this.combatEngine.entities) {
           for (const ent of this.combatEngine.entities) {
+            if (ent.isPlayer) continue;
             const quad = this.renderer.getPerspectiveTileQuad(ent.col, ent.row);
-            const bodyMinX = quad.centerX - 45 * quad.scale;
-            const bodyMaxX = quad.centerX + 45 * quad.scale;
-            const bodyMinY = quad.centerY - 65 * quad.scale;
-            const bodyMaxY = quad.centerY + 30 * quad.scale;
+            const bodyMinX = quad.centerX - 25 * quad.scale;
+            const bodyMaxX = quad.centerX + 25 * quad.scale;
+            const bodyMinY = quad.centerY - 55 * quad.scale;
+            const bodyMaxY = quad.centerY + 10 * quad.scale;
 
             if (x >= bodyMinX && x <= bodyMaxX && y >= bodyMinY && y <= bodyMaxY) {
               clickedCol = ent.col;
               clickedRow = ent.row;
               break;
             }
-          }
-        }
-
-        // 2. If no sprite body was clicked, check ground tile quads!
-        if (clickedCol === -1) {
-          for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 10; c++) {
-              const quad = this.renderer.getPerspectiveTileQuad(c, r);
-              if (
-                y >= quad.topL.y &&
-                y <= quad.botL.y &&
-                x >= Math.min(quad.topL.x, quad.botL.x) &&
-                x <= Math.max(quad.topR.x, quad.botR.x)
-              ) {
-                clickedCol = c;
-                clickedRow = r;
-                break;
-              }
-            }
-            if (clickedCol !== -1) break;
           }
         }
 
@@ -474,12 +473,14 @@ class GameEngine {
     this.mode = 'combat';
     this.combatEngine.startBattle(enemyType);
     this.combatScene.render();
+    this.updateCanvasCursor('cast');
 
     this.combatEngine.onBattleEndCallback = (isVictory) => {
       setTimeout(() => {
         this.combatScene.hide();
         this.mode = 'exploration';
         this.updateHUD();
+        this.updateCanvasCursor(this.explorationScene.currentVerb || 'walk');
         if (isVictory) {
           this.sierraScoreSystem.addPoints(`defeat_${enemyType}`, 25, `defeating ${enemyType} in combat`);
           this.showNotification('🎉 Combat Victory! Returned to Spielburg Valley.');
