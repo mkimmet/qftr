@@ -9,6 +9,20 @@ export class DialogueSystem {
     this.onChoiceCallback = null;
   }
 
+  startDialogue(dialogueTree, onChoice = null) {
+    const firstNode = Array.isArray(dialogueTree) ? dialogueTree[0] : (dialogueTree.root || dialogueTree);
+    const npcData = {
+      name: (firstNode && firstNode.npcName) ? firstNode.npcName : 'Guildmaster Bruno',
+      portraitEmoji: (firstNode && firstNode.npcName && firstNode.npcName.includes('Zara')) ? '🔮' : '⚔️'
+    };
+
+    this.showSierraQA(npcData, dialogueTree, 'root', null, (text, targetNode) => {
+      if (onChoice) {
+        onChoice({ text, targetNode });
+      }
+    });
+  }
+
   showSierraQA(npcData, dialogueTree, initialNodeId = 'root', statSystem = null, onChoice = null) {
     this.npcData = npcData;
     this.dialogueTree = dialogueTree;
@@ -37,7 +51,7 @@ export class DialogueSystem {
     synth.playClick();
 
     this.container.innerHTML = `
-      <div class="dialogue-modal parchment-card" style="width: 720px; border: 2px solid var(--parchment-border); box-shadow: 0 16px 40px rgba(0,0,0,0.85);">
+      <div class="dialogue-modal parchment-card" style="width: 720px; border: 2px solid var(--parchment-border); box-shadow: 0 16px 40px rgba(0,0,0,0.85); pointer-events: auto;">
         
         <!-- NPC Header & Portrait Bar -->
         <div style="display: flex; gap: 16px; align-items: center; border-bottom: 2px solid var(--parchment-border); padding-bottom: 12px; margin-bottom: 14px;">

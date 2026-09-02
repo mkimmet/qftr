@@ -184,6 +184,33 @@ export class Renderer2D {
       });
     }
 
+    if (sceneData.hotspots && sceneData.hotspots.length > 0) {
+      sceneData.hotspots.forEach(hs => {
+        if (hs.type === 'npc') {
+          depthEntities.push({
+            type: 'npc',
+            depthY: hs.y + hs.h,
+            render: () => {
+              this.ctx.save();
+              this.ctx.fillStyle = 'rgba(0,0,0,0.35)';
+              this.ctx.beginPath();
+              this.ctx.ellipse(hs.x + hs.w / 2, hs.y + hs.h - 10, 24, 10, 0, 0, Math.PI * 2);
+              this.ctx.fill();
+
+              this.ctx.font = '44px sans-serif';
+              this.ctx.textAlign = 'center';
+              this.ctx.fillText(hs.npcId === 'zara' ? '🔮' : '⚔️', hs.x + hs.w / 2, hs.y + hs.h - 20);
+
+              this.ctx.font = '700 13px "Cinzel", serif';
+              this.ctx.fillStyle = '#f4be42';
+              this.ctx.fillText(hs.label, hs.x + hs.w / 2, hs.y + 15);
+              this.ctx.restore();
+            }
+          });
+        }
+      });
+    }
+
     depthEntities.sort((a, b) => a.depthY - b.depthY);
 
     depthEntities.forEach(ent => {

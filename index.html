@@ -11,10 +11,11 @@
     <div id="game-container">
       <canvas id="game-canvas" width="1280" height="720" class="cursor-walk"></canvas>
       
-      <!-- Sierra Auto-Hiding Slide-Down Top Icon Bar -->
-      <div id="top-hud-layer" class="sierra-top-bar" style="display: none;">
-        <!-- Top Row: Hero Info, Gauges & Sierra Score -->
-        <div class="sierra-icon-row">
+      <!-- Sierra Header & Pulldown Top Icon Bar Container -->
+      <div id="top-hud-layer" class="sierra-top-container" style="display: none;">
+        
+        <!-- Always-Visible Top Status Header -->
+        <div class="sierra-always-visible-bar">
           <div class="sierra-icon-group">
             <span id="player-hero-name" style="font-family: var(--font-heading); font-weight: 700; color: var(--ghibli-sun-gold); font-size: 0.95rem;">Valen</span>
             <span id="player-hero-class" style="color: #a3c2b0; font-size: 0.82rem;">[Fighter]</span>
@@ -23,17 +24,17 @@
           <div class="sierra-icon-group">
             <div class="hud-stat" title="Health Points">
               <span style="color: var(--stat-health); font-size: 0.8rem;">HP</span>
-              <div class="stat-bar-container" style="width: 75px;"><div id="hp-bar-fill" class="stat-bar-fill health" style="width: 100%;"></div></div>
+              <div class="stat-bar-container" style="width: 70px;"><div id="hp-bar-fill" class="stat-bar-fill health" style="width: 100%;"></div></div>
               <span id="hp-text" style="font-size: 0.78rem; min-width: 40px;">50/50</span>
             </div>
             <div class="hud-stat" title="Mana Points">
               <span style="color: var(--stat-mana); font-size: 0.8rem;">MP</span>
-              <div class="stat-bar-container" style="width: 75px;"><div id="mp-bar-fill" class="stat-bar-fill mana" style="width: 100%;"></div></div>
+              <div class="stat-bar-container" style="width: 70px;"><div id="mp-bar-fill" class="stat-bar-fill mana" style="width: 100%;"></div></div>
               <span id="mp-text" style="font-size: 0.78rem; min-width: 40px;">20/20</span>
             </div>
             <div class="hud-stat" title="Stamina Points">
               <span style="color: var(--stat-stamina); font-size: 0.8rem;">ST</span>
-              <div class="stat-bar-container" style="width: 75px;"><div id="stamina-bar-fill" class="stat-bar-fill stamina" style="width: 100%;"></div></div>
+              <div class="stat-bar-container" style="width: 70px;"><div id="stamina-bar-fill" class="stat-bar-fill stamina" style="width: 100%;"></div></div>
               <span id="stamina-text" style="font-size: 0.78rem; min-width: 40px;">40/40</span>
             </div>
           </div>
@@ -46,11 +47,13 @@
             <div class="hud-stat" style="color: #ffffff; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--parchment-border); font-size: 0.82rem;">
               <span id="time-display">Day 1 - 09:00 AM</span>
             </div>
+            <!-- Pulldown Handle Button -->
+            <button id="btn-toggle-icon-bar" class="sierra-handle-btn" title="Toggle Sierra Icon Bar Drawer">📜 ICON BAR ▾</button>
           </div>
         </div>
 
-        <!-- Bottom Row: Sierra Verbs & Action Icon Buttons -->
-        <div class="sierra-icon-row" style="border-top: 1px solid rgba(140, 109, 70, 0.3); padding-top: 5px;">
+        <!-- Sliding Pulldown Sierra Icon Bar Drawer -->
+        <div id="pulldown-icon-drawer" class="sierra-pulldown-drawer">
           <!-- Sierra Verb Icons -->
           <div class="sierra-icon-group">
             <button class="icon-btn verb-btn active" data-verb="walk" title="Walk Cursor">🏃 WALK</button>

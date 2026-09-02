@@ -100,16 +100,6 @@ export class SpriteAnimation {
       Math.round(x - drawW / 2), Math.round(y - drawH + 2), drawW, drawH
     );
 
-    // Class Badge Overlay
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-
-    if (isStealth) ctx.fillText('🥷', x + drawW * 0.35, y - drawH * 0.5);
-    else if (heroClass.includes('Paladin')) ctx.fillText('🛡️', x + drawW * 0.35, y - drawH * 0.5);
-    else if (heroClass === 'Fighter') ctx.fillText('⚔️', x + drawW * 0.35, y - drawH * 0.5);
-    else if (heroClass === 'Magic User') ctx.fillText('🔮', x + drawW * 0.35, y - drawH * 0.5);
-    else if (heroClass === 'Thief') ctx.fillText('🗡️', x + drawW * 0.35, y - drawH * 0.5);
-
     ctx.restore();
   }
 }

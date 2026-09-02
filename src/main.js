@@ -157,6 +157,17 @@ class GameEngine {
       this.showSpellbookModal();
     });
 
+    const handleBtn = document.getElementById('btn-toggle-icon-bar');
+    if (handleBtn) {
+      handleBtn.addEventListener('click', () => {
+        synth.playClick();
+        const drawer = document.getElementById('pulldown-icon-drawer');
+        if (drawer) {
+          drawer.classList.toggle('open');
+        }
+      });
+    }
+
     document.getElementById('btn-open-stats').addEventListener('click', () => {
       synth.playClick();
       this.showStatsModal();

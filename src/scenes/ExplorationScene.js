@@ -265,16 +265,17 @@ export class ExplorationScene {
   executeInteraction(hit) {
     synth.playClick();
 
-    if (this.activeVerb === 'talk') {
-      if (hit.type === 'npc') {
-        if (hit.npcId === 'zara') {
-          this.gameEngine.merchantSystem.showShopModal();
-        } else {
-          this.triggerNPCDialogue(hit.npcId);
-        }
+    if (hit.type === 'npc') {
+      if (hit.npcId === 'zara') {
+        this.gameEngine.merchantSystem.showShopModal();
       } else {
-        this.gameEngine.showNotification('Talking to yourself won\'t help much!');
+        this.triggerNPCDialogue(hit.npcId);
       }
+      return;
+    }
+
+    if (this.activeVerb === 'talk') {
+      this.gameEngine.showNotification('Talking to yourself won\'t help much!');
     } else if (this.activeVerb === 'do' || hit.type === 'door' || hit.type === 'combat') {
       if (hit.type === 'door') {
         this.changeRoom(hit.targetRoom, hit.spawnX, hit.spawnY);

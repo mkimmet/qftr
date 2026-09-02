@@ -104,53 +104,75 @@ canvas.cursor-cast { cursor: cell; }
   pointer-events: auto;
 }
 
-/* Sierra Slide-Down Top Icon Bar */
-.sierra-top-bar {
+/* Sierra Top HUD Container */
+.sierra-top-container {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%) translateY(-80%);
+  left: 0;
   width: 100%;
-  max-width: 1280px;
-  background: rgba(15, 28, 21, 0.96);
-  backdrop-filter: blur(10px);
-  border: 2px solid var(--parchment-border);
-  border-top: none;
-  border-bottom-left-radius: var(--radius-md);
-  border-bottom-right-radius: var(--radius-md);
-  padding: 6px 12px 10px 12px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
-  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
-  opacity: 0.25;
+  z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  z-index: 50;
 }
 
-.sierra-top-bar:hover, .sierra-top-bar.active {
-  transform: translateX(-50%) translateY(0);
-  opacity: 1.0;
+/* Always-Visible Status Header Bar */
+.sierra-always-visible-bar {
+  width: 100%;
+  background: rgba(12, 22, 16, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid var(--parchment-border);
+  padding: 6px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
 }
 
-/* Pull Handle Indicator */
-.sierra-top-bar::after {
-  content: '▼ SIERRA ICON BAR ▼';
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-deep-forest);
+/* Pulldown Handle Button */
+.sierra-handle-btn {
+  background: linear-gradient(180deg, #8c5a14 0%, #523408 100%);
+  color: #fff;
   border: 1px solid var(--parchment-border);
-  border-top: none;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
+  border-radius: 6px;
   font-family: var(--font-heading);
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--ghibli-sun-gold);
-  padding: 2px 14px;
-  letter-spacing: 1px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sierra-handle-btn:hover {
+  background: linear-gradient(180deg, #f4be42 0%, #b8860b 100%);
+  color: #000;
+}
+
+/* Sliding Pulldown Sierra Icon Bar Drawer */
+.sierra-pulldown-drawer {
+  width: 100%;
+  background: rgba(10, 18, 13, 0.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--parchment-border);
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+  transform: translateY(-100%);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, max-height 0.35s ease;
+}
+
+.sierra-top-container:hover .sierra-pulldown-drawer,
+.sierra-pulldown-drawer.open {
+  transform: translateY(0);
+  opacity: 1.0;
+  max-height: 200px;
+  pointer-events: auto;
 }
 
 .sierra-icon-row {
