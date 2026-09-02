@@ -18,6 +18,21 @@ export class InventorySystem {
     ];
   }
 
+  hasItem(itemId) {
+    const item = this.items.find(i => i.id === itemId);
+    return item && item.count > 0;
+  }
+
+  removeItem(itemId, quantity = 1) {
+    const item = this.items.find(i => i.id === itemId);
+    if (!item) return false;
+    item.count -= quantity;
+    if (item.count <= 0) {
+      this.items = this.items.filter(i => i.id !== itemId);
+    }
+    return true;
+  }
+
   addItem(itemData, quantity = 1) {
     const existing = this.items.find(i => i.id === itemData.id);
     if (existing) {

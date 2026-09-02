@@ -29,14 +29,15 @@ export class CombatEngine {
     this.logs = [];
     this.isCombatActive = true;
 
-    const heroMaxAP = Math.min(10, Math.max(4, Math.floor(this.statSystem.stats.agility / 4)));
+    // Minimum 6 AP for hero turn actions!
+    const heroMaxAP = Math.max(6, Math.floor(this.statSystem.stats.agility / 2) + 2);
 
     this.playerEntity = {
       id: 'player',
       name: this.statSystem.heroName,
       isPlayer: true,
       col: 1,
-      row: 4,
+      row: 3,
       maxAp: heroMaxAP,
       ap: heroMaxAP,
       hp: this.statSystem.hp.current,
@@ -71,7 +72,7 @@ export class CombatEngine {
 
     this.entities = [this.playerEntity, enemyEntity];
 
-    this.gridMap.getTile(1, 4).occupiedBy = this.playerEntity;
+    this.gridMap.getTile(1, 3).occupiedBy = this.playerEntity;
     this.gridMap.getTile(8, 3).occupiedBy = enemyEntity;
 
     this.turnQueue = [...this.entities];
@@ -133,36 +134,87 @@ export class CombatEngine {
         this.statSystem.practiceStat('agility', 5);
       }
     } else if (occupant && !occupant.isPlayer) {
-      const dist = this.gridMap.getDistance(player.col, player.row, col, row);
+      const colDiff = Math.abs(player.col - col);
+      const rowDiff = Math.abs(player.row - row);
+      const isAdjacent = (colDiff <= 1 && rowDiff <= 1);
 
       if (this.selectedSpell) {
         this.executeSpellCast(player, occupant, this.selectedSpell);
-      } else if (dist === 1) {
+      } else if (isAdjacent) {
         this.executeMeleeAttack(player, occupant);
       } else {
-        this.addLog(`Target is out of melee range! Move closer first.`, 'system');
+        // Auto-approach enemy to strike in 1 click!
+        const adjCandidates = [
+          { col: col - 1, row: row },
+          { col: col + 1, row: row },
+          { col: col, row: row - 1 },
+          { col: col, row: row + 1 },
+          { col: col - 1, row: row - 1 },
+          { col: col + 1, row: row + 1 }
+        ];
+        
+        let bestPath = [];
+        for (const adj of adjCandidates) {
+          const tile = this.gridMap.getTile(adj.col, adj.row);
+          if (tile && !tile.obstacle && (!tile.occupiedBy || tile.occupiedBy.id === player.id)) {
+            const p = this.gridMap.findPath(player.col, player.row, adj.col, adj.row, player.ap);
+            if (p.length > 0 && (bestPath.length === 0 || p.length < bestPath.length)) {
+              bestPath = p;
+            }
+          }
+        }
+
+        if (bestPath.length > 0 && bestPath.length <= player.ap) {
+          const destTile = bestPath[bestPath.length - 1];
+          this.gridMap.getTile(player.col, player.row).occupiedBy = null;
+          player.col = destTile.col;
+          player.row = destTile.row;
+          this.gridMap.getTile(player.col, player.row).occupiedBy = player;
+
+          player.ap -= bestPath.length;
+          synth.playFootstep();
+          this.addLog(`🚶 ${player.name} closed in on ${occupant.name} [-${bestPath.length} AP].`, 'player');
+
+          if (player.ap >= 2) {
+            setTimeout(() => {
+              this.executeMeleeAttack(player, occupant);
+            }, 350);
+          } else {
+            this.addLog(`Out of AP to strike this turn! (Requires 2 AP)`, 'system');
+          }
+        } else {
+          this.addLog(`Target is out of AP movement range! End turn to gain AP.`, 'system');
+        }
       }
     }
   }
 
   executeMeleeAttack(attacker, defender) {
-    const apCost = 3;
+    const apCost = 2;
     if (attacker.ap < apCost) {
       this.addLog(`Not enough AP to attack! (Requires ${apCost} AP)`, 'system');
       return;
     }
 
     attacker.ap -= apCost;
-    synth.playSwing();
 
     const hitChance = Math.min(95, Math.max(30, 70 + (this.statSystem.stats.weaponry - 10)));
     const roll = Math.random() * 100;
 
     if (roll <= hitChance) {
+      // Direct Hit! Deep Thud Impact Sound!
+      synth.playThudHit();
       const baseDmg = Math.floor(8 + (this.statSystem.stats.strength * 0.5) + (Math.random() * 6));
       defender.hp -= baseDmg;
-      synth.playHit();
+      defender.hitShakeTime = Date.now();
+      defender.hitFlashTime = Date.now();
       this.addLog(`⚔️ ${attacker.name} strikes ${defender.name} for ${baseDmg} damage!`, 'damage');
+
+      if (this.gameEngine && this.gameEngine.renderer) {
+        const quad = this.gameEngine.renderer.getPerspectiveTileQuad(defender.col, defender.row);
+        this.gameEngine.renderer.addFloater(`💥 -${baseDmg} HP!`, quad.centerX, quad.centerY - 40, '#ff3333');
+        this.gameEngine.renderer.spawnSpellParticleEffect('Flame Dart', quad.centerX, quad.centerY);
+      }
 
       this.statSystem.practiceStat('weaponry', 12);
       this.statSystem.practiceStat('strength', 8);
@@ -171,7 +223,14 @@ export class CombatEngine {
         this.handleEnemyDefeat(defender);
       }
     } else {
+      // Miss / Parry! Air Swoosh Sound!
+      synth.playSwooshMiss();
       this.addLog(`🛡️ ${defender.name} parried the attack!`, 'system');
+      defender.hitShakeTime = Date.now();
+      if (this.gameEngine && this.gameEngine.renderer) {
+        const quad = this.gameEngine.renderer.getPerspectiveTileQuad(defender.col, defender.row);
+        this.gameEngine.renderer.addFloater(`💨 MISSED!`, quad.centerX, quad.centerY - 40, '#f4be42');
+      }
       this.statSystem.practiceStat('weaponry', 4);
     }
   }
@@ -190,11 +249,9 @@ export class CombatEngine {
     synth.playSpell();
 
     if (this.gameEngine && this.gameEngine.renderer) {
-      const originX = 140 + caster.col * 100 + 50;
-      const originY = 90 + caster.row * 65 + 30;
-      const targetX = 140 + target.col * 100 + 50;
-      const targetY = 90 + target.row * 65 + 30;
-      this.gameEngine.renderer.addSpellVFX(spell.vfx || 'fireball', originX, originY, targetX, targetY);
+      const quadCaster = this.gameEngine.renderer.getPerspectiveTileQuad(caster.col, caster.row);
+      const quadTarget = this.gameEngine.renderer.getPerspectiveTileQuad(target.col, target.row);
+      this.gameEngine.renderer.spawnSpellParticleEffect(spell.name, quadTarget.centerX, quadTarget.centerY);
     }
 
     if (spell.healAmount) {
@@ -208,7 +265,13 @@ export class CombatEngine {
     } else {
       const dmgVal = Math.floor(spell.damage[0] + Math.random() * (spell.damage[1] - spell.damage[0]) + (this.statSystem.stats.magic * 0.4));
       target.hp -= dmgVal;
+      target.hitShakeTime = Date.now();
       this.addLog(`🔥 ${caster.name} cast ${spell.name} hitting ${target.name} for ${dmgVal} magic damage!`, 'spell');
+
+      if (this.gameEngine && this.gameEngine.renderer) {
+        const quad = this.gameEngine.renderer.getPerspectiveTileQuad(target.col, target.row);
+        this.gameEngine.renderer.addFloater(`🔥 -${dmgVal} HP!`, quad.centerX, quad.centerY - 40, '#a855f7');
+      }
 
       if (target.hp <= 0) {
         this.handleEnemyDefeat(target);
@@ -237,21 +300,38 @@ export class CombatEngine {
           enemy.row = action.targetTile.row;
           this.gridMap.getTile(enemy.col, enemy.row).occupiedBy = enemy;
           synth.playFootstep();
-          this.addLog(`${enemy.name} moves closer to you.`, 'enemy');
+          this.addLog(`🚶 ${enemy.name} moves closer to you.`, 'enemy');
         } else if (action.type === 'attack') {
-          synth.playSwing();
-          const baseDmg = Math.floor(6 + Math.random() * 8);
-          const isPlayerDead = this.statSystem.takeDamage(baseDmg);
-          this.playerEntity.hp = this.statSystem.hp.current;
-          synth.playHit();
-          this.addLog(`💥 ${enemy.name} attacks you for ${baseDmg} damage!`, 'damage');
+          const hitChance = 75;
+          const roll = Math.random() * 100;
+          if (roll <= hitChance) {
+            synth.playThudHit();
+            const baseDmg = Math.floor(6 + Math.random() * 8);
+            const isPlayerDead = this.statSystem.takeDamage(baseDmg);
+            this.playerEntity.hp = this.statSystem.hp.current;
+            this.playerEntity.hitShakeTime = Date.now();
+            this.addLog(`💥 ${enemy.name} attacks you for ${baseDmg} damage!`, 'damage');
+
+            if (this.gameEngine && this.gameEngine.renderer) {
+              const quad = this.gameEngine.renderer.getPerspectiveTileQuad(this.playerEntity.col, this.playerEntity.row);
+              this.gameEngine.renderer.addFloater(`💥 -${baseDmg} HP!`, quad.centerX, quad.centerY - 40, '#ff3333');
+              this.gameEngine.renderer.spawnSpellParticleEffect('Flame Dart', quad.centerX, quad.centerY);
+            }
+
+            if (isPlayerDead) {
+              this.handlePlayerDefeat();
+            }
+          } else {
+            synth.playSwooshMiss();
+            this.addLog(`💨 ${enemy.name} swung and missed!`, 'system');
+            if (this.gameEngine && this.gameEngine.renderer) {
+              const quad = this.gameEngine.renderer.getPerspectiveTileQuad(this.playerEntity.col, this.playerEntity.row);
+              this.gameEngine.renderer.addFloater(`💨 MISSED!`, quad.centerX, quad.centerY - 40, '#f4be42');
+            }
+          }
 
           this.statSystem.practiceStat('parry', 8);
           this.statSystem.practiceStat('agility', 6);
-
-          if (isPlayerDead) {
-            this.handlePlayerDefeat();
-          }
         }
       }, actionDelay);
       actionDelay += 600;
@@ -273,6 +353,22 @@ export class CombatEngine {
     const rewardGold = Math.floor(50 + Math.random() * 60);
     this.inventorySystem.gold += rewardGold;
     this.addLog(`💰 Found ${rewardGold} Gold Coins on the defeated enemy.`, 'heal');
+
+    if (enemy.name.includes('Goblin Chieftain')) {
+      this.inventorySystem.addItem({
+        id: 'sun_amulet',
+        name: 'Sun Amulet of Spielburg',
+        count: 1,
+        icon: '☀️',
+        type: 'quest',
+        desc: 'A glowing ancient golden medallion bearing the royal seal of Spielburg Valley.'
+      });
+      synth.playStatUp();
+      this.addLog(`☀️ LOOTED SUN AMULET OF SPIELBURG! Deliver it to Bruno in Town Square.`, 'heal');
+      if (this.gameEngine) {
+        this.gameEngine.showNotification('☀️ LOOTED SUN AMULET OF SPIELBURG! Return to Bruno in Town Square.');
+      }
+    }
 
     if (enemy.name === 'Shadow Arch-Lich') {
       if (this.gameEngine) {

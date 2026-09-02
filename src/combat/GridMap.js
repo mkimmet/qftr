@@ -12,7 +12,7 @@ export class GridMap {
       const row = [];
       for (let c = 0; c < this.cols; c++) {
         // Randomize slight terrain obstacles (boulders, tree stumps)
-        const isObstacle = (r === 2 && c === 4) || (r === 5 && c === 7) || (r === 3 && c === 1);
+        const isObstacle = (r === 2 && c === 4) || (r === 5 && c === 7);
         row.push({
           col: c,
           row: r,

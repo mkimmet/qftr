@@ -1,10 +1,11 @@
 export class SpriteAnimation {
   constructor(options = {}) {
+    // Original 32x32 Grid Hero Sprite Sheet (/hero_spritesheet.png)
     this.image = new Image();
     this.image.src = options.src || '/hero_spritesheet.png';
 
-    // Sprite sheet contains a precise 32x32 pixel grid!
-    // 24 columns (8 Idle, 8 Walk, 8 Sneak), 8 rows (8 directions)
+    // 1024x256 sprite sheet: 24 columns, 8 rows
+    // Every frame is an exact 32x32 pixel cell!
     this.frameWidth = 32;
     this.frameHeight = 32;
     this.cols = 24;
@@ -19,7 +20,7 @@ export class SpriteAnimation {
       this.isLoaded = true;
     };
 
-    // Row Direction Mapping
+    // Row Direction Mapping (8 Directions)
     this.rowMap = {
       'down': 0,
       'left': 1,
@@ -42,7 +43,7 @@ export class SpriteAnimation {
     }
   }
 
-  drawHeroSprite(ctx, x, y, direction = 'down', isWalking = false, isStealth = false, drawScale = 4.8, heroClass = 'Fighter', cloakColor = null) {
+  drawHeroSprite(ctx, x, y, direction = 'down', isWalking = false, isStealth = false, drawScale = 3.6, heroClass = 'Fighter', cloakColor = null) {
     if (!this.isLoaded || !this.image.complete || this.image.naturalWidth === 0) {
       // Fallback silhouette while sprite loads
       ctx.save();
@@ -69,36 +70,37 @@ export class SpriteAnimation {
     const col = colOffset + (this.currentFrameIndex % 8);
     const row = this.rowMap[direction] !== undefined ? this.rowMap[direction] : 0;
 
-    // Exact 32x32 Grid Alignment!
+    // Exact 32x32 Cell Slicing!
     const srcX = col * 32;
     const srcY = row * 32;
 
+    // Draw at 2.4x Scale (76.8px height - 200% size of original 32px cell)
     const drawW = Math.round(32 * drawScale);
     const drawH = Math.round(32 * drawScale);
 
     ctx.save();
 
     if (isStealth) {
-      ctx.globalAlpha = 0.75;
+      ctx.globalAlpha = 0.8;
     }
 
     // Drop Shadow
     ctx.fillStyle = 'rgba(10, 20, 15, 0.45)';
     ctx.beginPath();
-    ctx.ellipse(x, y + 2, drawW * 0.3, drawH * 0.12, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + 2, drawW * 0.28, drawH * 0.1, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Disable image smoothing for ultra-crisp pixel art rendering!
+    // Disable image smoothing for crisp pixel art!
     ctx.imageSmoothingEnabled = false;
 
-    // Draw Sprite Frame
+    // Draw Full 32x32 Hero Sprite Frame (Anchored at Feet)
     ctx.drawImage(
       this.image,
       srcX, srcY, 32, 32,
-      Math.round(x - drawW / 2), Math.round(y - drawH + 4), drawW, drawH
+      Math.round(x - drawW / 2), Math.round(y - drawH + 2), drawW, drawH
     );
 
-    // Class Badge & Weapon Overlay
+    // Class Badge Overlay
     ctx.font = '16px sans-serif';
     ctx.textAlign = 'center';
 

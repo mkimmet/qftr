@@ -5,157 +5,120 @@ export class ExplorationScene {
   constructor(gameEngine) {
     this.gameEngine = gameEngine;
     this.currentRoom = 'town_square';
-    this.activeVerb = 'walk';
+    this.activeVerb = 'walk'; // 'walk' | 'look' | 'talk' | 'do' | 'cast'
+    this.isSunGateUnlocked = false;
 
+    // Background Images for Rooms
     this.bgImages = {
       town_square: new Image(),
-      forest_path: new Image(),
       magic_shop: new Image(),
       guild_hall: new Image(),
-      town_gate: new Image(),
-      goblin_camp: new Image(),
-      thief_hideout: new Image(),
-      castle_courtyard: new Image(),
-      goblin_vault: new Image(),
+      forest_path: new Image(),
       deep_forest: new Image(),
+      goblin_camp: new Image(),
+      goblin_vault: new Image(),
       citadel_gate: new Image(),
-      throne_room: new Image()
+      throne_room: new Image(),
+      thief_hideout: new Image()
     };
+
     this.bgImages.town_square.src = '/town_square.jpg';
-    this.bgImages.forest_path.src = '/forest.jpg';
     this.bgImages.magic_shop.src = '/magic_shop.jpg';
     this.bgImages.guild_hall.src = '/guild_hall.jpg';
-    this.bgImages.town_gate.src = '/town_square.jpg';
-    this.bgImages.goblin_camp.src = '/forest.jpg';
-    this.bgImages.thief_hideout.src = '/magic_shop.jpg';
-    this.bgImages.castle_courtyard.src = '/town_square.jpg';
-    this.bgImages.goblin_vault.src = '/magic_shop.jpg';
+    this.bgImages.forest_path.src = '/forest.jpg';
     this.bgImages.deep_forest.src = '/forest.jpg';
+    this.bgImages.goblin_camp.src = '/forest.jpg';
+    this.bgImages.goblin_vault.src = '/guild_hall.jpg';
     this.bgImages.citadel_gate.src = '/forest.jpg';
-    this.bgImages.throne_room.src = '/magic_shop.jpg';
+    this.bgImages.throne_room.src = '/guild_hall.jpg';
+    this.bgImages.thief_hideout.src = '/guild_hall.jpg';
 
+    // Room Definitions
     this.rooms = {
       town_square: {
         id: 'town_square',
-        title: 'Spielburg Town Square',
+        title: 'Spielburg Town Square & Market',
         bgImage: this.bgImages.town_square,
-        desc: 'A serene, sunlit cobblestone square surrounded by lush emerald pines and half-timbered Ghibli-style cottages.',
-        bounds: { xMin: 40, xMax: 1240, yMin: 280, yMax: 660 },
+        desc: 'A bustling medieval cobble square with a marble fountain, tavern notices, and merchant stalls.',
+        bounds: { xMin: 50, xMax: 1230, yMin: 320, yMax: 650 },
         exits: {
-          east: { room: 'forest_path', spawnX: 80, spawnY: 450, msg: 'Walked east to Mistvale Forest Path.' },
-          west: { room: 'town_gate', spawnX: 1180, spawnY: 450, msg: 'Walked west to Spielburg Town Gate.' }
+          east: { room: 'forest_path', spawnX: 80, spawnY: 450, msg: 'Traveled east to Mistvale Forest.' },
+          north: { room: 'guild_hall', spawnX: 640, spawnY: 600, msg: 'Entered Adventurers Guild Hall.' },
+          west: { room: 'magic_shop', spawnX: 1100, spawnY: 450, msg: 'Entered Zara\'s Arcane Shop.' }
         },
         obstacles: [
           { id: 'obs_fountain', type: 'circle', x: 650, y: 390, radius: 45 },
-          { id: 'obs_left_house', type: 'rect', x: 0, y: 0, w: 220, h: 320 },
-          { id: 'obs_right_house', type: 'rect', x: 950, y: 0, w: 330, h: 320 }
+          { id: 'obs_house_left', type: 'rect', x: 0, y: 0, w: 260, h: 330 },
+          { id: 'obs_house_right', type: 'rect', x: 960, y: 0, w: 320, h: 330 }
         ],
         props: [
-          { id: 'prop_fountain', label: '⛲ Town Square Fountain', icon: '⛲', x: 650, y: 430, depthY: 430, isInteractable: false },
-          { id: 'prop_notice', label: '📌 Guild Notice Board', icon: '📌', x: 280, y: 390, depthY: 390, isInteractable: true, action: 'open_notice_board' },
-          { id: 'prop_chest', label: '🧰 Shadow Alley Chest', icon: '🧰', x: 405, y: 360, depthY: 360, isInteractable: true, action: 'unlock_chest' }
+          { id: 'prop_fountain', label: '⛲ Spielburg Fountain', icon: '⛲', x: 650, y: 440, depthY: 440, isInteractable: false }
         ],
         hotspots: [
-          { id: 'notice_board', label: '📌 Guild Bounty Board', x: 250, y: 340, w: 100, h: 120, type: 'action', action: 'open_notice_board', desc: 'A wooden notice board posted with official Spielburg quest bounties!' },
-          { id: 'guild_hall', label: '⚔️ Adventurer Guild Door', x: 70, y: 380, w: 140, h: 220, type: 'door', targetRoom: 'guild_hall', spawnX: 180, spawnY: 480, desc: 'The heavy timbered entrance door to the Adventurer Guildhall.' },
-          { id: 'magic_shop', label: '🔮 Zara\'s Arcana Shop Door', x: 580, y: 380, w: 150, h: 220, type: 'door', targetRoom: 'magic_shop', spawnX: 980, spawnY: 480, desc: 'Arcana shop doorway under the colorful market awning.' },
-          { id: 'thief_alley', label: '🗝️ Shadow Alley Entrance', x: 360, y: 220, w: 120, h: 160, type: 'door', targetRoom: 'thief_hideout', spawnX: 200, spawnY: 480, desc: 'A mysterious cobblestone alleyway winding up toward the thief hideout.' },
-          { id: 'shadow_chest', label: '🧰 Shadow Alley Chest', x: 380, y: 330, w: 90, h: 80, type: 'action', action: 'unlock_chest', desc: 'An ancient iron-bound treasure chest resting in the shadows.' },
-          { id: 'forest_gate', label: '🌲 Forest Archway (Combat Zone)', x: 1040, y: 400, w: 180, h: 240, type: 'door', targetRoom: 'forest_path', spawnX: 80, spawnY: 450, desc: 'Cobblestone archway leading out into Mistvale Forest.' }
-        ]
-      },
-      town_gate: {
-        id: 'town_gate',
-        title: 'Spielburg Town Gate & Guard Post',
-        bgImage: this.bgImages.town_gate,
-        desc: 'The reinforced stone gates of Spielburg Village, guarded by the Sheriff and village militia.',
-        bounds: { xMin: 40, xMax: 1240, yMin: 280, yMax: 660 },
-        exits: {
-          east: { room: 'town_square', spawnX: 80, spawnY: 450, msg: 'Walked east back to Town Square.' }
-        },
-        obstacles: [
-          { id: 'obs_gate_wall', type: 'rect', x: 0, y: 0, w: 300, h: 360 }
-        ],
-        props: [
-          { id: 'prop_target', label: '🎯 Target Board', icon: '🎯', x: 910, y: 410, depthY: 410, isInteractable: true, action: 'throw_dagger' }
-        ],
-        hotspots: [
-          { id: 'castle_gate', label: '🏰 Castle Courtyard Gate', x: 550, y: 260, w: 180, h: 160, type: 'door', targetRoom: 'castle_courtyard', spawnX: 640, spawnY: 480, desc: 'High stone archway leading north into Spielburg Castle Courtyard.' },
-          { id: 'target_board', label: '🎯 Dagger Throwing Target', x: 850, y: 350, w: 120, h: 160, type: 'action', action: 'throw_dagger', desc: 'A wooden target board for practicing dagger throwing.' }
-        ]
-      },
-      castle_courtyard: {
-        id: 'castle_courtyard',
-        title: 'Spielburg Castle Courtyard',
-        bgImage: this.bgImages.castle_courtyard,
-        desc: 'High stone ramparts adorned with heraldic banners. Knights duel in the cobblestone arena.',
-        bounds: { xMin: 120, xMax: 1140, yMin: 340, yMax: 640 },
-        exits: {},
-        obstacles: [],
-        props: [],
-        hotspots: [
-          { id: 'duel_knight', label: '⚔️ Challenge Knight Captain', x: 580, y: 340, w: 160, h: 180, type: 'combat', enemyType: 'Knight Captain', desc: 'The veteran Knight Captain offering sword duels to worthy heroes.' },
-          { id: 'exit_gate', label: '🚪 Return to Town Gate', x: 100, y: 380, w: 140, h: 240, type: 'door', targetRoom: 'town_gate', spawnX: 640, spawnY: 480, desc: 'Courtyard exit returning south to Town Gate.' }
-        ]
-      },
-      guild_hall: {
-        id: 'guild_hall',
-        title: 'Adventurers Guild Hall',
-        bgImage: this.bgImages.guild_hall,
-        desc: 'Warm wooden hearth, trophy shields on walls, and a training dummy for sword practice.',
-        bounds: { xMin: 120, xMax: 1140, yMin: 360, yMax: 640 },
-        exits: {},
-        obstacles: [
-          { id: 'obs_hearth', type: 'rect', x: 440, y: 280, w: 180, h: 120 }
-        ],
-        props: [
-          { id: 'prop_dummy', label: '⚔️ Practice Dummy', icon: '⚔️', x: 880, y: 420, depthY: 420, isInteractable: true, action: 'practice_sword' }
-        ],
-        hotspots: [
-          { id: 'npc_guildmaster', label: '⚔️ Guildmaster Bruno', x: 460, y: 340, w: 140, h: 180, type: 'npc', npcId: 'guildmaster', desc: 'Guildmaster Bruno standing near the hearth in knightly armor.' },
-          { id: 'dummy', label: '⚔️ Practice Sword Dummy', x: 820, y: 360, w: 120, h: 180, type: 'action', action: 'practice_sword', desc: 'A heavy straw training dummy for sword drills.' },
-          { id: 'exit_square', label: '🚪 Exit to Town Square', x: 70, y: 340, w: 140, h: 280, type: 'door', targetRoom: 'town_square', spawnX: 140, spawnY: 480, desc: 'Door exiting back out to Spielburg Square.' }
+          { id: 'fountain', label: '⛲ Marble Fountain', x: 600, y: 400, w: 100, h: 80, type: 'action', action: 'drink_fountain', desc: 'Cool mountain spring water. Restores 10 HP.' },
+          { id: 'notice_board', label: '📌 Notice Board', x: 780, y: 360, w: 80, h: 90, type: 'action', action: 'open_notice_board', desc: 'Bounty notices posted by the Town Sheriff & Guildmaster Bruno.' },
+          { id: 'guild_door', label: '⚔️ Adventurers Guild Entrance', x: 600, y: 260, w: 120, h: 100, type: 'door', targetRoom: 'guild_hall', spawnX: 640, spawnY: 600, desc: 'Door leading into the Adventurers Guild Hall.' },
+          { id: 'magic_door', label: '🔮 Zara\'s Arcane Shop', x: 280, y: 320, w: 100, h: 100, type: 'door', targetRoom: 'magic_shop', spawnX: 1100, spawnY: 450, desc: 'Shop of Zara the Sorceress.' },
+          { id: 'forest_exit', label: '🌲 Road to Mistvale Forest', x: 1160, y: 360, w: 120, h: 220, type: 'door', targetRoom: 'forest_path', spawnX: 80, spawnY: 450, desc: 'Dirt road heading east into Mistvale Forest.' },
+          { id: 'dagger_target', label: '🎯 Dagger Target Board', x: 180, y: 420, w: 80, h: 80, type: 'action', action: 'throw_dagger', desc: 'Wooden target board for dagger throwing drills.' }
         ]
       },
       magic_shop: {
         id: 'magic_shop',
-        title: 'Zara\'s Arcana Shop',
+        title: 'Zara\'s Arcane Sanctum & Shop',
         bgImage: this.bgImages.magic_shop,
-        desc: 'A magical sanctum filled with glowing potion vials, ancient scrolls, and floating spell books.',
-        bounds: { xMin: 120, xMax: 1140, yMin: 360, yMax: 640 },
-        exits: {},
-        obstacles: [
-          { id: 'obs_cauldron', type: 'rect', x: 440, y: 300, w: 220, h: 140 }
-        ],
+        desc: 'A mystical chamber filled with glowing potions, ancient scrolls, and floating crystals.',
+        bounds: { xMin: 100, xMax: 1180, yMin: 340, yMax: 640 },
+        exits: {
+          east: { room: 'town_square', spawnX: 300, spawnY: 450, msg: 'Returned to Town Square.' }
+        },
+        obstacles: [],
         props: [],
         hotspots: [
-          { id: 'npc_zara', label: '🔮 Sorceress Zara (Shop)', x: 480, y: 360, w: 140, h: 180, type: 'npc', npcId: 'zara', desc: 'Sorceress Zara brewing glowing magical potions. Talk to browse her shop!' },
-          { id: 'practice_magic', label: '✨ Arcana Circle (Spell Practice)', x: 750, y: 440, w: 160, h: 140, type: 'action', action: 'practice_magic', desc: 'An arcana rug drawn with glowing runes for spell practice.' },
-          { id: 'exit_square', label: '🚪 Exit to Town Square', x: 1060, y: 280, w: 180, h: 360, type: 'door', targetRoom: 'town_square', spawnX: 650, spawnY: 480, desc: 'Open wooden doorway leading back out to town.' }
+          { id: 'zara_npc', label: '🔮 Zara the Sorceress', x: 500, y: 360, w: 100, h: 120, type: 'npc', npcId: 'zara', desc: 'Zara the Sorceress brewing arcane elixirs.' },
+          { id: 'magic_runes', label: '✨ Arcane Runes', x: 750, y: 380, w: 120, h: 100, type: 'action', action: 'practice_magic', desc: 'Glowing magical runes inscribed on a stone tablet.' },
+          { id: 'exit_shop', label: '🚪 Exit to Town Square', x: 1080, y: 380, w: 100, h: 200, type: 'door', targetRoom: 'town_square', spawnX: 300, spawnY: 450, desc: 'Door exiting back to Town Square.' }
+        ]
+      },
+      guild_hall: {
+        id: 'guild_hall',
+        title: 'Spielburg Adventurers Guild Hall',
+        bgImage: this.bgImages.guild_hall,
+        desc: 'A sturdy timber hall hung with beast trophies, guild banners, and training dummies.',
+        bounds: { xMin: 120, xMax: 1140, yMin: 360, yMax: 640 },
+        exits: {
+          south: { room: 'town_square', spawnX: 640, spawnY: 340, msg: 'Returned to Town Square.' }
+        },
+        obstacles: [],
+        props: [],
+        hotspots: [
+          { id: 'bruno_npc', label: '⚔️ Guildmaster Bruno', x: 480, y: 340, w: 100, h: 120, type: 'npc', npcId: 'guildmaster', desc: 'Guildmaster Bruno, veteran warrior of Spielburg.' },
+          { id: 'dummy', label: '🎯 Training Dummy', x: 750, y: 380, w: 90, h: 100, type: 'action', action: 'practice_sword', desc: 'Straw training dummy for practicing sword drills.' },
+          { id: 'exit_guild', label: '🚪 Exit to Town Square', x: 580, y: 580, w: 140, h: 80, type: 'door', targetRoom: 'town_square', spawnX: 640, spawnY: 340, desc: 'Main entrance back out to Town Square.' }
         ]
       },
       forest_path: {
         id: 'forest_path',
-        title: 'Mistvale Forest Path',
+        title: 'Mistvale Forest Path & Sun Gate',
         bgImage: this.bgImages.forest_path,
-        desc: 'Dark pine woods filled with rustling leaves. Goblin tracks lead deeper into the wilderness.',
-        bounds: { xMin: 40, xMax: 1240, yMin: 300, yMax: 660 },
+        desc: 'A dense sun-dappled forest path. An ancient Rune Sun Gate blocks entry to Whispering Cavern.',
+        bounds: { xMin: 50, xMax: 1230, yMin: 320, yMax: 650 },
         exits: {
-          west: { room: 'town_square', spawnX: 1180, spawnY: 450, msg: 'Walked west back to Spielburg Town Square.' },
-          east: { room: 'goblin_camp', spawnX: 80, spawnY: 450, msg: 'Walked east into the Goblin Encampment.' }
+          west: { room: 'town_square', spawnX: 1140, spawnY: 450, msg: 'Returned to Town Square.' }
         },
         obstacles: [
-          { id: 'obs_pine_tree', type: 'circle', x: 240, y: 450, radius: 60 }
+          { id: 'obs_rock_1', type: 'polygon', label: '🪨 Mossy Scenery Boulder', isCutout: true, isSolid: false, depthY: 480, points: [{ x: 480, y: 380 }, { x: 620, y: 350 }, { x: 580, y: 480 }, { x: 400, y: 450 }] },
+          { id: 'obs_rock_base', type: 'rect', label: '🪨 Physical Rock Base', isCutout: false, isSolid: true, x: 420, y: 440, w: 160, h: 40 }
         ],
         props: [
           { id: 'prop_pine', label: '🌲 Ancient Pine Tree', icon: '🌲', x: 240, y: 450, depthY: 450, isInteractable: false },
           { id: 'prop_moonflower', label: '🌸 Moonflower Herb', icon: '🌸', x: 735, y: 430, depthY: 430, isInteractable: true, action: 'pick_moonflower' }
         ],
         hotspots: [
+          { id: 'hs_sun_gate', label: '☀️ Rune Sun Gate (Whispering Cavern)', x: 920, y: 300, w: 180, h: 200, type: 'action', action: 'interact_sun_gate', desc: 'An ancient stone gate bearing glowing sun runes. Blocks entry to Whispering Cavern.' },
           { id: 'deep_woods', label: '🌲 Deep Forest Grove (North Path)', x: 550, y: 260, w: 180, h: 140, type: 'door', targetRoom: 'deep_forest', spawnX: 640, spawnY: 620, desc: 'Path winding north into Deep Mistvale Wilderness.' },
           { id: 'moonflower', label: '🌸 Moonflower Herb', x: 690, y: 400, w: 90, h: 80, type: 'action', action: 'pick_moonflower', desc: 'A rare glowing blue Moonflower growing near the mossy stones.' },
-          { id: 'battle_goblin', label: '👺 Goblin Spearman (Grid Combat)', x: 420, y: 340, w: 160, h: 180, type: 'combat', enemyType: 'Goblin Spearman', desc: 'A patrol of armed goblin spearmen marching in the clearing.' },
-          { id: 'battle_warlock', label: '🧙 Shadow Warlock (Boss Grid Combat)', x: 780, y: 300, w: 160, h: 180, type: 'combat', enemyType: 'Shadow Warlock', desc: 'A sinister shadow warlock gathering dark magical energy.' },
+          { id: 'battle_goblin', label: '👺 Goblin Spearman (Grid Combat)', x: 380, y: 340, w: 140, h: 160, type: 'combat', enemyType: 'Goblin Spearman', desc: 'A patrol of armed goblin spearmen marching in the clearing.' },
           { id: 'exit_square', label: '🌉 Stone Bridge (Return to Town)', x: 60, y: 380, w: 160, h: 220, type: 'door', targetRoom: 'town_square', spawnX: 1180, spawnY: 450, desc: 'Stone bridge leading back to Spielburg Village.' }
         ]
       },
@@ -177,12 +140,12 @@ export class ExplorationScene {
       },
       goblin_camp: {
         id: 'goblin_camp',
-        title: 'Goblin Encampment & Stronghold',
+        title: 'Whispering Cavern & Goblin Camp',
         bgImage: this.bgImages.goblin_camp,
-        desc: 'A smoky goblin war camp filled with bonfires, crude bone totems, and stolen guild loot chests.',
+        desc: 'A smoky cavern war camp filled with bonfires and stolen guild treasures. The Goblin Chieftain commands the camp!',
         bounds: { xMin: 40, xMax: 1240, yMin: 300, yMax: 660 },
         exits: {
-          west: { room: 'forest_path', spawnX: 1180, spawnY: 450, msg: 'Walked west back to Forest Path.' }
+          west: { room: 'forest_path', spawnX: 920, spawnY: 450, msg: 'Walked west back to Forest Path.' }
         },
         obstacles: [
           { id: 'obs_bonfire', type: 'circle', x: 640, y: 450, radius: 80 }
@@ -191,8 +154,8 @@ export class ExplorationScene {
           { id: 'prop_bonfire', label: '🔥 Goblin Bonfire', icon: '🔥', x: 640, y: 450, depthY: 450, isInteractable: false }
         ],
         hotspots: [
-          { id: 'goblin_vault_door', label: '🗝️ Stronghold Vault Entrance', x: 880, y: 340, w: 160, h: 180, type: 'door', targetRoom: 'goblin_vault', spawnX: 200, spawnY: 480, desc: 'Heavy wooden doors leading into the Goblin Chieftain Vault.' },
-          { id: 'battle_chieftain', label: '👑 Fight Goblin Chieftain (BOSS)', x: 550, y: 320, w: 180, h: 200, type: 'combat', enemyType: 'Goblin Chieftain', desc: 'The massive armor-clad Goblin Chieftain wielding a heavy battleaxe!' }
+          { id: 'battle_chieftain', label: '👑 Fight Goblin Chieftain (BOSS)', x: 550, y: 320, w: 180, h: 200, type: 'combat', enemyType: 'Goblin Chieftain', desc: 'The massive Goblin Chieftain holding the stolen Sun Amulet of Spielburg!' },
+          { id: 'goblin_vault_door', label: '🗝️ Stronghold Vault Entrance', x: 880, y: 340, w: 160, h: 180, type: 'door', targetRoom: 'goblin_vault', spawnX: 200, spawnY: 480, desc: 'Heavy wooden doors leading into the Goblin Vault.' }
         ]
       },
       goblin_vault: {
@@ -325,10 +288,11 @@ export class ExplorationScene {
         synth.playSpell();
         this.gameEngine.statSystem.practiceStat('magic', 20);
         this.gameEngine.showNotification(`🪄 Cast Open / Fetch spell on ${hit.label}! (+Magic XP)`);
-        if (hit.action === 'unlock_chest' || hit.action === 'thief_door') {
-          this.gameEngine.questSystem.completeQuest('quest_chest');
-          this.gameEngine.sierraScoreSystem.addPoints('unlock_chest', 20, 'opening the locked Shadow Alley Chest');
-          this.gameEngine.showNotification('✨ Open spell popped open the locked Shadow Alley Chest!');
+        if (hit.action === 'interact_sun_gate') {
+          this.isSunGateUnlocked = true;
+          this.gameEngine.sierraScoreSystem.addPoints('sun_gate_spell', 25, 'unsealing the Rune Sun Gate with Open spell');
+          this.gameEngine.showNotification('✨ OPEN SPELL UNSEALED THE RUNE SUN GATE! Access to Whispering Cavern unlocked!');
+          this.changeRoom('goblin_camp', 200, 480);
         }
       } else {
         this.gameEngine.showNotification('You don\'t know any magic spells yet! (Magic stat is 0)');
@@ -350,7 +314,41 @@ export class ExplorationScene {
   }
 
   handleSpecialAction(action) {
-    if (action === 'open_notice_board') {
+    if (action === 'interact_sun_gate') {
+      if (this.isSunGateUnlocked || this.gameEngine.inventorySystem.hasItem('sun_amulet')) {
+        this.changeRoom('goblin_camp', 200, 480);
+        return;
+      }
+
+      const hClass = this.gameEngine.statSystem.heroClass || 'Fighter';
+      if (hClass === 'Magic User') {
+        synth.playSpell();
+        this.isSunGateUnlocked = true;
+        this.gameEngine.sierraScoreSystem.addPoints('sun_gate_magic', 25, 'unsealing the Rune Sun Gate with magic runes');
+        this.gameEngine.showNotification('🔮 MAGE SOLVED SUN GATE: Chanted arcane runes to unseal the gate!');
+        this.changeRoom('goblin_camp', 200, 480);
+      } else if (hClass === 'Thief') {
+        synth.playStatUp();
+        this.isSunGateUnlocked = true;
+        this.gameEngine.statSystem.practiceStat('agility', 20);
+        this.gameEngine.sierraScoreSystem.addPoints('sun_gate_thief', 25, 'picking the ancient Rune Sun Gate lock');
+        this.gameEngine.showNotification('🗝️ THIEF SOLVED SUN GATE: Picked the ancient lock mechanism!');
+        this.changeRoom('goblin_camp', 200, 480);
+      } else {
+        // Fighter / Paladin
+        synth.playStatUp();
+        this.isSunGateUnlocked = true;
+        this.gameEngine.statSystem.practiceStat('strength', 20);
+        this.gameEngine.sierraScoreSystem.addPoints('sun_gate_fighter', 25, 'forcing open the heavy stone Sun Gate');
+        this.gameEngine.showNotification('⚔️ FIGHTER SOLVED SUN GATE: Forced open the heavy stone gate with brute strength!');
+        this.changeRoom('goblin_camp', 200, 480);
+      }
+    } else if (action === 'drink_fountain') {
+      synth.playStatUp();
+      this.gameEngine.statSystem.currentHp = Math.min(this.gameEngine.statSystem.maxHp, this.gameEngine.statSystem.currentHp + 10);
+      this.gameEngine.updateHUD();
+      this.gameEngine.showNotification('⛲ Drank refreshing mountain spring water (+10 HP).');
+    } else if (action === 'open_notice_board') {
       synth.playClick();
       const dialogueLayer = document.getElementById('dialogue-layer');
       dialogueLayer.style.display = 'flex';
@@ -365,23 +363,23 @@ export class ExplorationScene {
 
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px;">
             <div style="background: rgba(255,255,255,0.7); border: 2px solid #8c5a14; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px;">
-              <span style="font-size: 2rem;">👺</span>
-              <div style="font-weight: 800; color: #5e410c;">Goblin Bounty</div>
-              <div style="font-size: 0.78rem; color: #524030;">Vanquish Goblin Spearmen in Mistvale Forest Path.</div>
-              <button class="btn-ghibli btn-emerald btn-claim-bounty" data-quest="quest_goblin" style="padding: 4px; font-size: 0.8rem; margin-top: 4px;">Claim Bounty</button>
+              <span style="font-size: 2rem;">☀️</span>
+              <div style="font-weight: 800; color: #5e410c;">Sun Amulet Quest</div>
+              <div style="font-size: 0.78rem; color: #524030;">Unseal Sun Gate & retrieve Sun Amulet for Bruno.</div>
+              <button class="btn-ghibli btn-emerald btn-claim-bounty" data-quest="trial_of_spielburg" style="padding: 4px; font-size: 0.8rem; margin-top: 4px;">Claim Quest</button>
             </div>
 
             <div style="background: rgba(255,255,255,0.7); border: 2px solid #8c5a14; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px;">
               <span style="font-size: 2rem;">🛡️</span>
               <div style="font-weight: 800; color: #5e410c;">Paladin Shield</div>
-              <div style="font-size: 0.78rem; color: #524030;">Retrieve the Holy Paladin Shield from Goblin Vault.</div>
+              <div style="font-size: 0.78rem; color: #524030;">Retrieve Holy Paladin Shield from Goblin Vault.</div>
               <button class="btn-ghibli btn-emerald btn-claim-bounty" data-quest="quest_chest" style="padding: 4px; font-size: 0.8rem; margin-top: 4px;">Claim Bounty</button>
             </div>
 
             <div style="background: rgba(255,255,255,0.7); border: 2px solid #8c5a14; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 6px;">
               <span style="font-size: 2rem;">💀</span>
               <div style="font-weight: 800; color: #5e410c;">Shadow Arch-Lich</div>
-              <div style="font-size: 0.78rem; color: #524030;">Defeat the Arch-Lich inside the Void Citadel.</div>
+              <div style="font-size: 0.78rem; color: #524030;">Defeat Arch-Lich inside the Void Citadel.</div>
               <button class="btn-ghibli btn-emerald btn-claim-bounty" data-quest="quest_archlich" style="padding: 4px; font-size: 0.8rem; margin-top: 4px;">Claim Bounty</button>
             </div>
           </div>
@@ -392,10 +390,9 @@ export class ExplorationScene {
 
       dialogueLayer.querySelectorAll('.btn-claim-bounty').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const qId = e.target.getAttribute('data-quest');
           synth.playStatUp();
           this.gameEngine.sierraScoreSystem.addPoints('claim_bounty', 10, 'claiming a Notice Board bounty poster');
-          this.gameEngine.showNotification(`📌 Claimed bounty! Check your Quest Log for objectives.`);
+          this.gameEngine.showNotification(`📌 Claimed bounty! Check your Quest Journal for objectives.`);
         });
       });
 
@@ -449,44 +446,44 @@ export class ExplorationScene {
     } else if (action === 'learn_fetch') {
       synth.playSpell();
       this.gameEngine.statSystem.practiceStat('magic', 30);
-      this.gameEngine.sierraScoreSystem.addPoints('learn_fetch', 25, 'discovering the Scroll of Fetch in Deep Forest');
-      this.gameEngine.showNotification('📜 Learned the Fetch spell! Telekinetically pull distant objects & enemies.');
-    } else if (action === 'unlock_chest' || action === 'thief_door') {
-      const stealthVal = this.gameEngine.statSystem.stats.stealth;
-      if (stealthVal >= 15) {
-        this.gameEngine.statSystem.practiceStat('stealth', 30);
-        synth.playStatUp();
-        this.gameEngine.questSystem.completeQuest('quest_chest');
-        this.gameEngine.sierraScoreSystem.addPoints('unlock_chest', 20, 'picking the locked Shadow Alley Chest');
-      } else {
-        this.gameEngine.statSystem.practiceStat('stealth', 10);
-        this.gameEngine.showNotification('🔒 Chest is locked tight! Need STEALTH 15+ or an OPEN spell.');
-      }
-    } else if (action === 'pick_moonflower') {
-      synth.playStatUp();
-      this.gameEngine.questSystem.completeQuest('quest_zara');
-      this.gameEngine.sierraScoreSystem.addPoints('pick_moonflower', 15, 'picking the rare Moonflower Herb');
+      this.gameEngine.sierraScoreSystem.addPoints('learn_fetch', 20, 'reading the Scroll of Fetch');
+      this.gameEngine.showNotification('📜 Learned the Arcane Fetch Spell!');
     }
   }
 
   triggerNPCDialogue(npcId) {
     if (npcId === 'guildmaster') {
-      const npcData = {
-        name: 'Guildmaster Bruno',
-        portraitEmoji: '⚔️'
-      };
+      const hasSunAmulet = this.gameEngine.inventorySystem.hasItem('sun_amulet');
 
       const guildmasterTree = [
         {
           id: 'root',
           npcName: 'Guildmaster Bruno',
-          text: 'Welcome to the Adventurers Guild, Hero! What knowledge or bounties do you seek today?',
+          text: hasSunAmulet ? 'By Bruno\'s beard! You carry the stolen Sun Amulet of Spielburg!' : 'Welcome to the Adventurers Guild, Hero! What knowledge or bounties do you seek today?',
           options: [
+            ...(hasSunAmulet ? [{ text: '☀️ [TURN IN QUEST] Deliver the Sun Amulet of Spielburg!', targetNode: 'turn_in_sun_amulet' }] : []),
+            { text: '☀️ Ask about "The Trial of Spielburg" Quest', targetNode: 'ans_sun_amulet' },
             { text: 'Ask about the Goblin Bounty in Mistvale Forest', targetNode: 'ans_goblins' },
             { text: 'Ask about the Shadow Arch-Lich threat', targetNode: 'ans_archlich' },
             { text: '[FIGHTER] Ask how to improve sword technique', targetNode: 'ans_sword', reqClass: 'Fighter' },
-            { text: 'Ask how to rest and recover health', targetNode: 'ans_rest' },
             { text: 'Farewell Guildmaster.', targetNode: 'end_dialogue' }
+          ]
+        },
+        {
+          id: 'turn_in_sun_amulet',
+          npcName: 'Guildmaster Bruno',
+          text: 'HAIL THE HERO OF SPIELBURG! You unsealed the Rune Sun Gate and vanquished the Goblin Chieftain! Here is your reward of 100 Gold and 50 Sierra Score Points!',
+          options: [
+            { text: 'Thank you Guildmaster! Long live Spielburg!', targetNode: 'execute_turn_in' }
+          ]
+        },
+        {
+          id: 'ans_sun_amulet',
+          npcName: 'Guildmaster Bruno',
+          text: 'The Shadow Goblins stole our royal Sun Amulet and fled into Whispering Cavern! Unseal the Rune Sun Gate in Mistvale Forest, defeat the Goblin Chieftain, and return the Sun Amulet to me for a royal reward of 100 Gold and 50 Sierra Score Points!',
+          options: [
+            { text: 'Ask about another topic...', targetNode: 'root' },
+            { text: 'I will retrieve the Sun Amulet at once!', targetNode: 'end_dialogue' }
           ]
         },
         {
@@ -515,25 +512,17 @@ export class ExplorationScene {
             { text: 'Ask about another topic...', targetNode: 'root' },
             { text: 'Thank you Guildmaster!', targetNode: 'end_dialogue' }
           ]
-        },
-        {
-          id: 'ans_rest',
-          npcName: 'Guildmaster Bruno',
-          text: 'Click the "🌙 Rest" button in the top icon bar anytime to sleep for 8 hours and fully restore your HP, MP, and Stamina!',
-          options: [
-            { text: 'Ask about another topic...', targetNode: 'root' },
-            { text: 'Understood!', targetNode: 'end_dialogue' }
-          ]
         }
       ];
 
-      this.gameEngine.dialogueSystem.showSierraQA(npcData, guildmasterTree, 'root', this.gameEngine.statSystem, (text, target) => {
-        if (text.includes('Goblin Bounty')) {
-          this.gameEngine.showNotification('📜 Quest Log Updated: Goblin Bounty in Mistvale Forest.');
+      this.gameEngine.dialogueSystem.startDialogue(guildmasterTree, (selectedOption) => {
+        if (selectedOption.targetNode === 'execute_turn_in') {
+          this.gameEngine.inventorySystem.removeItem('sun_amulet', 1);
+          this.gameEngine.questSystem.completeQuest('trial_of_spielburg');
+          synth.playStatUp();
+          this.gameEngine.showNotification('🎉 QUEST COMPLETE: "The Trial of Spielburg"! (+100 Gold, +50 Sierra Score Points)');
         }
       });
-    } else if (npcId === 'zara') {
-      this.gameEngine.merchantSystem.showShopModal();
     }
   }
 }

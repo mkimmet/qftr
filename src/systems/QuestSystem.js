@@ -5,9 +5,17 @@ export class QuestSystem {
     this.gameEngine = gameEngine;
     this.quests = [
       {
+        id: 'trial_of_spielburg',
+        title: '☀️ The Trial of Spielburg (Sun Amulet)',
+        status: 'active', // 'active' | 'completed'
+        desc: 'Unseal the Rune Sun Gate in Mistvale Forest, defeat the Goblin Chieftain in Whispering Cavern, and return the stolen Sun Amulet to Guildmaster Bruno.',
+        rewardGold: 100,
+        rewardPoints: 50
+      },
+      {
         id: 'quest_goblin',
         title: '👺 Goblin Bounty in Mistvale Forest',
-        status: 'active', // 'active' | 'completed'
+        status: 'active',
         desc: 'Vanquish the Goblin Spearmen and Chieftain guarding the forest path.',
         rewardGold: 50,
         rewardPoints: 25

@@ -7,6 +7,7 @@ export class Renderer2D {
     this.ctx = canvas.getContext('2d');
     this.width = canvas.width;
     this.height = canvas.height;
+    this.gameEngine = null;
 
     // 8-Directional 3-State Hero Sprite Sheet Animation Engine
     this.heroSpriteSheet = new SpriteAnimation({
@@ -91,151 +92,99 @@ export class Renderer2D {
       }
     }
 
-    if (foundSegment && isFinite(maxY)) return maxY;
-
-    const validYPts = points.map(p => p ? p.y : 0).filter(y => !isNaN(y) && isFinite(y));
-    if (validYPts.length > 0) return Math.max(...validYPts);
-    return 400;
+    return foundSegment ? maxY : (points[0].y || 400);
   }
 
-  renderExplorationScene(sceneData, playerState, timeSystem = null, hotspots = []) {
-    if (!sceneData) return;
-    this.ctx.clearRect(0, 0, this.width, this.height);
+  renderExplorationScene(sceneData, playerState, timeSystem, hotspots = []) {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (sceneData.bgImage && sceneData.bgImage.complete && sceneData.bgImage.naturalWidth > 0) {
-      this.ctx.drawImage(sceneData.bgImage, 0, 0, this.width, this.height);
+    if (sceneData.bgImage && sceneData.bgImage.complete && sceneData.bgImage.naturalWidth !== 0) {
+      this.ctx.drawImage(sceneData.bgImage, 0, 0, this.canvas.width, this.canvas.height);
     } else {
-      this.ctx.fillStyle = '#0f1712';
-      this.ctx.fillRect(0, 0, this.width, this.height);
-      this.ctx.fillStyle = 'rgba(247, 242, 231, 0.4)';
-      this.ctx.font = '700 24px "Cinzel", serif';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText(`🏰 ${sceneData.title || 'Realm Exploration'}`, this.width / 2, this.height / 2);
+      this.ctx.fillStyle = '#223322';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    if (this.targetMarker) {
-      this.ctx.save();
-      this.targetMarker.radius += 0.5;
-      this.targetMarker.alpha -= 0.03;
-
-      this.ctx.strokeStyle = 'rgba(244, 190, 66, ' + Math.max(0, this.targetMarker.alpha) + ')';
-      this.ctx.lineWidth = 2;
-      this.ctx.beginPath();
-      this.ctx.arc(this.targetMarker.x, this.targetMarker.y, this.targetMarker.radius, 0, Math.PI * 2);
-      this.ctx.stroke();
-
-      if (this.targetMarker.alpha <= 0) {
-        this.targetMarker = null;
-      }
-      this.ctx.restore();
+    if (playerState.isWalking) {
+      this.heroSpriteSheet.update();
     }
 
-    // Collect Y-Sorted Depth Entities (Hero, NPCs, Monsters, Room Scenery Props & Polygon 2.5D Cutouts)
+    const heroDepthY = playerState.y;
+
     const depthEntities = [];
 
-    // Add Polygon Scenery Cutouts with Safe Per-X Curved Bottom Evaluation
+    depthEntities.push({
+      type: 'hero',
+      depthY: heroDepthY,
+      render: () => {
+        this.renderHeroPaperdoll(
+          playerState.x,
+          playerState.y,
+          playerState.isWalking,
+          playerState.walkStep || 0,
+          playerState.heroClass || 'Fighter',
+          playerState.isStealth || false,
+          playerState.cloakColor || null,
+          playerState.facingDir || 'down'
+        );
+      }
+    });
+
     if (sceneData.obstacles && sceneData.obstacles.length > 0) {
       sceneData.obstacles.forEach(obs => {
-        if (obs.type === 'polygon' && obs.isCutout && obs.points && obs.points.length > 2) {
-          const heroX = playerState ? playerState.x : 600;
-          const depthY = this.getPolygonBaseYAtX(obs.points, heroX);
-
+        if (obs.isCutout) {
+          const obsDepthY = obs.depthY !== undefined ? obs.depthY : (obs.y || 400);
           depthEntities.push({
-            y: depthY,
+            type: 'cutout_obstacle',
+            depthY: obsDepthY,
             render: () => {
-              if (sceneData.bgImage && sceneData.bgImage.complete && sceneData.bgImage.naturalWidth > 0) {
-                this.ctx.save();
-                this.ctx.beginPath();
+              this.ctx.save();
+              this.ctx.beginPath();
+              if (obs.type === 'circle') {
+                this.ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+              } else if (obs.type === 'rect') {
+                this.ctx.rect(obs.x, obs.y, obs.w, obs.h);
+              } else if (obs.type === 'polygon' && obs.points && obs.points.length > 0) {
                 this.ctx.moveTo(obs.points[0].x, obs.points[0].y);
                 for (let i = 1; i < obs.points.length; i++) {
                   this.ctx.lineTo(obs.points[i].x, obs.points[i].y);
                 }
                 this.ctx.closePath();
-                this.ctx.clip();
-                this.ctx.drawImage(sceneData.bgImage, 0, 0, this.width, this.height);
-                this.ctx.restore();
               }
+              this.ctx.clip();
+
+              if (sceneData.bgImage && sceneData.bgImage.complete) {
+                this.ctx.drawImage(sceneData.bgImage, 0, 0, this.canvas.width, this.canvas.height);
+              }
+
+              this.ctx.lineWidth = 3;
+              this.ctx.strokeStyle = 'rgba(244, 190, 66, 0.4)';
+              this.ctx.stroke();
+              this.ctx.restore();
             }
           });
         }
       });
     }
 
-    // Add Room Scenery Props (Trees, Fountains, Statues, Chests)
     if (sceneData.props && sceneData.props.length > 0) {
       sceneData.props.forEach(prop => {
+        const propDepthY = prop.depthY || prop.y;
         depthEntities.push({
-          y: prop.depthY || prop.y || 400,
+          type: 'prop',
+          depthY: propDepthY,
           render: () => {
             this.ctx.save();
-            this.ctx.font = '36px sans-serif';
+            this.ctx.font = '32px sans-serif';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(prop.icon || '🪵', prop.x, prop.y);
-            this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
-            this.ctx.font = '700 12px "Cinzel", serif';
-            this.ctx.fillText(prop.label, prop.x, prop.y - 42);
+            this.ctx.fillText(prop.icon, prop.x, prop.y);
             this.ctx.restore();
           }
         });
       });
     }
 
-    if (sceneData.id === 'magic_shop') {
-      depthEntities.push({
-        y: 420,
-        render: () => this.renderNPCSorceress(550, 420)
-      });
-    } else if (sceneData.id === 'guild_hall') {
-      depthEntities.push({
-        y: 400,
-        render: () => this.renderNPCGuildmaster(530, 400)
-      });
-    } else if (sceneData.id === 'forest_path') {
-      depthEntities.push({
-        y: 420,
-        render: () => this.renderMonsterGoblin(500, 420)
-      });
-      depthEntities.push({
-        y: 380,
-        render: () => this.renderMonsterWarlock(850, 380)
-      });
-    } else if (sceneData.id === 'goblin_camp') {
-      depthEntities.push({
-        y: 420,
-        render: () => this.renderMonsterChieftain(640, 420)
-      });
-    } else if (sceneData.id === 'throne_room') {
-      depthEntities.push({
-        y: 400,
-        render: () => this.renderMonsterArchLich(640, 400)
-      });
-    }
-
-    if (playerState) {
-      depthEntities.push({
-        y: playerState.y || 450,
-        render: () => {
-          this.heroSpriteSheet.update();
-          this.renderHeroPaperdoll(
-            playerState.x,
-            playerState.y,
-            playerState.isWalking,
-            playerState.walkStep,
-            playerState.heroClass,
-            playerState.isStealth,
-            playerState.cloakColor,
-            playerState.facingDir || 'down'
-          );
-        }
-      });
-    }
-
-    // Safe Sort (handles NaN gracefully without throwing error)
-    depthEntities.sort((a, b) => {
-      const ay = (a && !isNaN(a.y) && isFinite(a.y)) ? a.y : 0;
-      const by = (b && !isNaN(b.y) && isFinite(b.y)) ? b.y : 0;
-      return ay - by;
-    });
+    depthEntities.sort((a, b) => a.depthY - b.depthY);
 
     depthEntities.forEach(ent => {
       try {
@@ -256,6 +205,216 @@ export class Renderer2D {
 
     this.updateAndRenderParticles(timeSystem);
     this.renderFloaters();
+  }
+
+  getPerspectiveTileQuad(col, row) {
+    const horizonY = 330; // Natural Horizon Line of Room Art
+    const totalRows = 8;
+    const totalCols = 10;
+    
+    // Depth Y curve: steps start at 345px and expand toward 680px
+    const getRowY = (r) => {
+      const t = r / totalRows;
+      return horizonY + 15 + t * 280 + (t * t) * 55;
+    };
+
+    // Perspective Scale factor: 0.70 at horizon, 1.28 at front camera
+    const getRowScale = (r) => {
+      return 0.70 + (r / totalRows) * 0.58;
+    };
+
+    const yTop = getRowY(row);
+    const yBot = getRowY(row + 1);
+
+    const scaleTop = getRowScale(row);
+    const scaleBot = getRowScale(row + 1);
+
+    const baseColWidth = 86;
+    const wTop = baseColWidth * scaleTop;
+    const wBot = baseColWidth * scaleBot;
+
+    // Center grid at X = 640
+    const startXTop = 640 - (totalCols * wTop) / 2;
+    const startXBot = 640 - (totalCols * wBot) / 2;
+
+    const xTopL = startXTop + col * wTop;
+    const xTopR = xTopL + wTop;
+
+    const xBotL = startXBot + col * wBot;
+    const xBotR = xBotL + wBot;
+
+    const centerX = (xTopL + xTopR + xBotL + xBotR) / 4;
+    const centerY = (yTop + yBot) / 2;
+
+    return {
+      topL: { x: xTopL, y: yTop },
+      topR: { x: xTopR, y: yTop },
+      botR: { x: xBotR, y: yBot },
+      botL: { x: xBotL, y: yBot },
+      centerX,
+      centerY,
+      scale: (scaleTop + scaleBot) / 2
+    };
+  }
+
+  renderCombatScene(combatEngine, timeSystem) {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.save();
+
+    // 1. Draw Full Canvas Background Image (1280x720)
+    const currentRoom = (this.gameEngine && this.gameEngine.explorationScene) 
+      ? this.gameEngine.explorationScene.getCurrentRoomData() 
+      : null;
+    
+    if (currentRoom && currentRoom.bgImage && currentRoom.bgImage.complete && currentRoom.bgImage.naturalWidth !== 0) {
+      this.ctx.drawImage(currentRoom.bgImage, 0, 0, this.canvas.width, this.canvas.height);
+    } else {
+      this.ctx.fillStyle = '#223322';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    // 2. Render 2.5D Perspective Checkerboard Grid aligned with Horizon Line (330px)
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 10; c++) {
+        const quad = this.getPerspectiveTileQuad(c, r);
+
+        const isHovered = (
+          this.mouseY >= quad.topL.y &&
+          this.mouseY <= quad.botL.y &&
+          this.mouseX >= Math.min(quad.topL.x, quad.botL.x) &&
+          this.mouseX <= Math.max(quad.topR.x, quad.botR.x)
+        );
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(quad.topL.x, quad.topL.y);
+        this.ctx.lineTo(quad.topR.x, quad.topR.y);
+        this.ctx.lineTo(quad.botR.x, quad.botR.y);
+        this.ctx.lineTo(quad.botL.x, quad.botL.y);
+        this.ctx.closePath();
+
+        // Parchment Checkerboard Texture Fill
+        this.ctx.fillStyle = (c + r) % 2 === 0 ? 'rgba(244, 220, 170, 0.20)' : 'rgba(210, 180, 130, 0.12)';
+        if (isHovered) {
+          this.ctx.fillStyle = 'rgba(244, 190, 66, 0.48)';
+        }
+        this.ctx.fill();
+
+        this.ctx.strokeStyle = isHovered ? '#f4be42' : 'rgba(244, 200, 110, 0.45)';
+        this.ctx.lineWidth = isHovered ? 2.5 : 1.2;
+        this.ctx.stroke();
+      }
+    }
+
+    // 3. Render Entities in Side Profile (sorted by row depth)
+    if (combatEngine && combatEngine.entities) {
+      const sortedEntities = [...combatEngine.entities].sort((a, b) => a.row - b.row);
+
+      sortedEntities.forEach(ent => {
+        const quad = this.getPerspectiveTileQuad(ent.col, ent.row);
+        let basePxX = quad.centerX;
+        let basePxY = quad.centerY;
+
+        // Rapid recoil shake on hit (350ms duration)
+        let shakeX = 0;
+        if (ent.hitShakeTime && Date.now() - ent.hitShakeTime < 350) {
+          const elapsed = Date.now() - ent.hitShakeTime;
+          shakeX = Math.sin(elapsed * 0.08) * Math.max(0, (350 - elapsed) * 0.05);
+        }
+
+        const targetPxX = basePxX + shakeX;
+        const targetPxY = basePxY;
+
+        if (ent.isPlayer) {
+          if (!ent.renderX) ent.renderX = targetPxX;
+          if (!ent.renderY) ent.renderY = targetPxY;
+
+          const dx = targetPxX - ent.renderX;
+          const dy = targetPxY - ent.renderY;
+          const dist = Math.hypot(dx, dy);
+
+          let isWalking = false;
+          let facingDir = ent.facingDir || 'right';
+
+          if (dist > 2) {
+            isWalking = true;
+            ent.renderX += (dx / dist) * 4.5;
+            ent.renderY += (dy / dist) * 4.5;
+
+            const angle = Math.atan2(dy, dx);
+            if (angle > -Math.PI / 8 && angle <= Math.PI / 8) facingDir = 'right';
+            else if (angle > Math.PI / 8 && angle <= (3 * Math.PI) / 8) facingDir = 'down_right';
+            else if (angle > (3 * Math.PI) / 8 && angle <= (5 * Math.PI) / 8) facingDir = 'down';
+            else if (angle > (5 * Math.PI) / 8 && angle <= (7 * Math.PI) / 8) facingDir = 'down_left';
+            else if (angle > (-3 * Math.PI) / 8 && angle <= -Math.PI / 8) facingDir = 'up_right';
+            else if (angle > (-5 * Math.PI) / 8 && angle <= (-3 * Math.PI) / 8) facingDir = 'up';
+            else if (angle > (-7 * Math.PI) / 8 && angle <= (-5 * Math.PI) / 8) facingDir = 'up_left';
+            else facingDir = 'left';
+            ent.facingDir = facingDir;
+          } else {
+            ent.renderX = targetPxX;
+            ent.renderY = targetPxY;
+          }
+
+          if (isWalking) {
+            this.heroSpriteSheet.update();
+          }
+          const heroClass = (this.gameEngine && this.gameEngine.statSystem) ? this.gameEngine.statSystem.heroClass : 'Fighter';
+          const drawScale = 2.2 * quad.scale;
+          this.heroSpriteSheet.drawHeroSprite(
+            this.ctx,
+            Math.round(ent.renderX),
+            Math.round(ent.renderY + 12),
+            facingDir,
+            isWalking,
+            false,
+            drawScale,
+            heroClass,
+            null
+          );
+
+          // Hero Health Bar
+          const hpPct = Math.max(0, ent.hp / ent.maxHp);
+          this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          this.ctx.fillRect(ent.renderX - 25, ent.renderY - 74, 50, 6);
+          this.ctx.fillStyle = '#4ea373';
+          this.ctx.fillRect(ent.renderX - 25, ent.renderY - 74, 50 * hpPct, 6);
+
+        } else {
+          // Render Enemies
+          if (ent.name && ent.name.includes('Chieftain')) {
+            this.renderMonsterChieftain(targetPxX, targetPxY + 20);
+          } else if (ent.name && ent.name.includes('Arch-Lich')) {
+            this.renderMonsterArchLich(targetPxX, targetPxY + 20);
+          } else {
+            this.ctx.save();
+            this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            this.ctx.beginPath();
+            this.ctx.ellipse(targetPxX, targetPxY + 20, 22 * quad.scale, 9 * quad.scale, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            const monsterFontSize = Math.round(36 * quad.scale);
+            this.ctx.font = `${monsterFontSize}px sans-serif`;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(ent.portrait || '👺', targetPxX, targetPxY + 14);
+
+            this.ctx.font = '700 12px "Cinzel", serif';
+            this.ctx.fillStyle = '#f4be42';
+            this.ctx.fillText(ent.name, targetPxX, targetPxY - 32);
+
+            const hpPct = Math.max(0, ent.hp / ent.maxHp);
+            this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            this.ctx.fillRect(targetPxX - 25, targetPxY - 26, 50, 6);
+            this.ctx.fillStyle = '#d64545';
+            this.ctx.fillRect(targetPxX - 25, targetPxY - 26, 50 * hpPct, 6);
+            this.ctx.restore();
+          }
+        }
+      });
+    }
+
+    this.updateAndRenderParticles();
+    this.renderFloaters();
+    this.ctx.restore();
   }
 
   renderDayNightLighting(timeSystem) {
@@ -324,110 +483,19 @@ export class Renderer2D {
   }
 
   renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null, facingDir = 'down') {
-    this.heroSpriteSheet.drawHeroSprite(this.ctx, x, y, facingDir, isWalking, isStealth, 4.5, heroClass || 'Fighter', cloakColor);
+    this.heroSpriteSheet.drawHeroSprite(this.ctx, x, y, facingDir, isWalking, isStealth, 3.6, heroClass || 'Fighter', cloakColor);
   }
 
   renderNPCSorceress(x, y) {
     this.ctx.save();
-    this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    this.ctx.beginPath();
-    this.ctx.ellipse(x, y, 20, 8, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = '#5c3d75';
-    this.ctx.fillRect(x - 14, y - 45, 28, 38);
-    this.ctx.strokeStyle = '#2d1840';
-    this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(x - 14, y - 45, 28, 38);
-
-    this.ctx.fillStyle = '#fce4ec';
-    this.ctx.beginPath();
-    this.ctx.arc(x, y - 56, 12, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = '#3a2054';
-    this.ctx.beginPath();
-    this.ctx.moveTo(x - 18, y - 62);
-    this.ctx.lineTo(x + 18, y - 62);
-    this.ctx.lineTo(x, y - 90);
-    this.ctx.closePath();
-    this.ctx.fill();
-
-    this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
-    this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('🔮 Sorceress Zara', x, y - 98);
-
-    this.ctx.restore();
-  }
-
-  renderNPCGuildmaster(x, y) {
-    this.ctx.save();
-    this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
     this.ctx.beginPath();
     this.ctx.ellipse(x, y, 22, 9, 0, 0, Math.PI * 2);
     this.ctx.fill();
 
-    this.ctx.fillStyle = '#a83232';
-    this.ctx.fillRect(x - 18, y - 48, 36, 40);
-
-    this.ctx.fillStyle = '#7a8b99';
-    this.ctx.fillRect(x - 14, y - 45, 28, 32);
-    this.ctx.strokeStyle = '#293540';
-    this.ctx.lineWidth = 2;
-    this.ctx.strokeRect(x - 14, y - 45, 28, 32);
-
-    this.ctx.fillStyle = '#d9d9d9';
-    this.ctx.fillRect(x - 10, y - 66, 20, 20);
-    this.ctx.fillStyle = '#a83232';
-    this.ctx.fillRect(x - 3, y - 76, 6, 10);
-
-    this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
-    this.ctx.font = '700 13px "Cinzel", serif';
+    this.ctx.font = '40px sans-serif';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('⚔️ Guildmaster Bruno', x, y - 82);
-
-    this.ctx.restore();
-  }
-
-  renderMonsterGoblin(x, y) {
-    this.ctx.save();
-    this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    this.ctx.beginPath();
-    this.ctx.ellipse(x, y, 18, 8, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = '#387654';
-    this.ctx.fillRect(x - 12, y - 35, 24, 26);
-
-    this.ctx.fillStyle = '#4ea373';
-    this.ctx.beginPath();
-    this.ctx.arc(x, y - 44, 12, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
-    this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('👺 Goblin Spearman', x, y - 78);
-
-    this.ctx.restore();
-  }
-
-  renderMonsterWarlock(x, y) {
-    this.ctx.save();
-    this.ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    this.ctx.beginPath();
-    this.ctx.ellipse(x, y, 20, 8, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.fillStyle = '#2b1b3d';
-    this.ctx.fillRect(x - 14, y - 46, 28, 38);
-
-    this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
-    this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('🧙 Shadow Warlock', x, y - 84);
-
+    this.ctx.fillText('🔮', x, y - 10);
     this.ctx.restore();
   }
 
@@ -438,11 +506,13 @@ export class Renderer2D {
     this.ctx.ellipse(x, y, 24, 10, 0, 0, Math.PI * 2);
     this.ctx.fill();
 
+    this.ctx.font = '44px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('👑', x, y - 10);
+
     this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
     this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('👑 Goblin Chieftain', x, y - 88);
-
+    this.ctx.fillText('👑 Goblin Chieftain', x, y - 56);
     this.ctx.restore();
   }
 
@@ -453,11 +523,13 @@ export class Renderer2D {
     this.ctx.ellipse(x, y, 26, 11, 0, 0, Math.PI * 2);
     this.ctx.fill();
 
+    this.ctx.font = '44px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('💀', x, y - 10);
+
     this.ctx.fillStyle = 'rgba(247, 242, 231, 0.95)';
     this.ctx.font = '700 13px "Cinzel", serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('💀 Arch-Lich Malakor', x, y - 96);
-
+    this.ctx.fillText('💀 Arch-Lich Malakor', x, y - 56);
     this.ctx.restore();
   }
 

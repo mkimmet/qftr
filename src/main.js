@@ -79,6 +79,7 @@ class GameEngine {
     };
 
     this.initUI();
+    this.updateCanvasCursor('walk');
     this.initCharacterCreation();
     this.startLoop();
   }
@@ -214,6 +215,9 @@ class GameEngine {
 
     // Canvas Mouse Down / Click
     this.canvas.addEventListener('mousedown', (e) => {
+      // Ignore Right-Click / Secondary buttons so Right-Click ONLY cycles verb cursors!
+      if (e.button !== 0) return;
+
       const rect = this.canvas.getBoundingClientRect();
       const scaleX = this.canvas.width / rect.width;
       const scaleY = this.canvas.height / rect.height;
@@ -232,19 +236,73 @@ class GameEngine {
         this.renderer.setTargetMarker(x, y);
         this.explorationScene.handleCanvasClick(x, y, this.playerState);
       } else if (this.mode === 'combat') {
-        const originX = 140;
-        const originY = 90;
-        const tileW = 100;
-        const tileH = 65;
-        const col = Math.floor((x - originX) / tileW);
-        const row = Math.floor((y - originY) / tileH);
+        let clickedCol = -1;
+        let clickedRow = -1;
 
-        if (col >= 0 && col < 10 && row >= 0 && row < 8) {
-          this.combatEngine.handleTileClick(col, row);
+        // 1. First check if click hit any Enemy Sprite Body directly!
+        if (this.combatEngine && this.combatEngine.entities) {
+          for (const ent of this.combatEngine.entities) {
+            const quad = this.renderer.getPerspectiveTileQuad(ent.col, ent.row);
+            const bodyMinX = quad.centerX - 45 * quad.scale;
+            const bodyMaxX = quad.centerX + 45 * quad.scale;
+            const bodyMinY = quad.centerY - 65 * quad.scale;
+            const bodyMaxY = quad.centerY + 30 * quad.scale;
+
+            if (x >= bodyMinX && x <= bodyMaxX && y >= bodyMinY && y <= bodyMaxY) {
+              clickedCol = ent.col;
+              clickedRow = ent.row;
+              break;
+            }
+          }
+        }
+
+        // 2. If no sprite body was clicked, check ground tile quads!
+        if (clickedCol === -1) {
+          for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 10; c++) {
+              const quad = this.renderer.getPerspectiveTileQuad(c, r);
+              if (
+                y >= quad.topL.y &&
+                y <= quad.botL.y &&
+                x >= Math.min(quad.topL.x, quad.botL.x) &&
+                x <= Math.max(quad.topR.x, quad.botR.x)
+              ) {
+                clickedCol = c;
+                clickedRow = r;
+                break;
+              }
+            }
+            if (clickedCol !== -1) break;
+          }
+        }
+
+        if (clickedCol >= 0 && clickedCol < 10 && clickedRow >= 0 && clickedRow < 8) {
+          this.combatEngine.handleTileClick(clickedCol, clickedRow);
           this.combatScene.updateAPUI();
         }
       }
     });
+  }
+
+  updateCanvasCursor(verb) {
+    const cursorMap = {
+      walk: { emoji: '🏃', color: '#6ee3a0', name: 'WALK' },
+      look: { emoji: '👁️', color: '#f4be42', name: 'LOOK' },
+      talk: { emoji: '💬', color: '#3a86ff', name: 'TALK' },
+      do:   { emoji: '✋', color: '#ff7777', name: 'DO / INTERACT' },
+      cast: { emoji: '⚔️', color: '#b56eff', name: 'FIGHT / CAST' }
+    };
+
+    const c = cursorMap[verb] || cursorMap.walk;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.9"/>
+      </filter>
+      <circle cx="20" cy="20" r="17" fill="rgba(12, 22, 16, 0.88)" stroke="${c.color}" stroke-width="2.5" filter="url(#shadow)"/>
+      <text x="20" y="27" font-size="22" text-anchor="middle">${c.emoji}</text>
+    </svg>`;
+    
+    this.canvas.style.cursor = `url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}') 20 20, auto`;
   }
 
   setVerb(verb) {
@@ -260,8 +318,8 @@ class GameEngine {
       }
     });
 
-    this.canvas.className = `cursor-${verb}`;
-    this.showNotification(`Active Verb: [${verb.toUpperCase()}]`);
+    this.updateCanvasCursor(verb);
+    this.showNotification(`Active Cursor: [${verb.toUpperCase()}]`);
   }
 
   initCharacterCreation() {
