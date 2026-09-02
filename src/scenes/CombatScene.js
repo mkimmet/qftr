@@ -11,27 +11,29 @@ export class CombatScene {
   render() {
     this.containerEl.style.display = 'block';
     this.containerEl.innerHTML = `
-      <div class="combat-hud">
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <!-- AP Indicator -->
-          <div class="parchment-card" style="padding: 10px 16px; width: fit-content; display: flex; align-items: center; gap: 12px;">
-            <span style="font-family: var(--font-heading); font-weight: 700; color: var(--text-dark);">Turn Action Points (AP):</span>
-            <div style="display: flex; gap: 4px;" id="ap-dots-container"></div>
-          </div>
-
+      <div class="combat-hud" style="position: absolute; top: 60px; left: 20px; right: 20px; bottom: 20px; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-end;">
+        
+        <!-- Left Side: Action Buttons & Log -->
+        <div style="display: flex; flex-direction: column; gap: 10px; pointer-events: auto; max-width: 480px;">
           <!-- Action Buttons -->
-          <div class="action-bar">
-            <button id="btn-combat-attack" class="btn-ghibli">⚔️ Melee Attack (3 AP)</button>
+          <div class="action-bar" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="btn-combat-attack" class="btn-ghibli">⚔️ Melee Attack (2 AP)</button>
             <button id="btn-combat-spell" class="btn-ghibli btn-emerald">🔮 Cast Spell</button>
             <button id="btn-combat-item" class="btn-ghibli">🧪 Use Item</button>
             <button id="btn-combat-end" class="btn-ghibli btn-crimson">⌛ End Turn</button>
           </div>
+
+          <!-- Combat Log (The Realm Style) -->
+          <div class="combat-log" id="combat-log-scroll" style="background: rgba(12, 22, 16, 0.88); border: 2px solid var(--parchment-border); padding: 10px; border-radius: 8px; max-height: 140px; overflow-y: auto; color: #f7f2e7; font-size: 0.82rem;">
+            <div style="font-weight: 700; color: var(--ghibli-sun-gold); margin-bottom: 6px; border-bottom: 1px solid var(--parchment-border);">Battle Log</div>
+            <div id="log-entries"></div>
+          </div>
         </div>
 
-        <!-- Combat Log (The Realm Style) -->
-        <div class="combat-log" id="combat-log-scroll">
-          <div style="font-weight: 700; color: var(--ghibli-sun-gold); margin-bottom: 6px; border-bottom: 1px solid var(--parchment-border);">Battle Log</div>
-          <div id="log-entries"></div>
+        <!-- Right Side: Turn Action Points (AP) Indicator (Uncovered Top-Right position!) -->
+        <div class="parchment-card" style="position: absolute; top: 0px; right: 0px; padding: 10px 18px; pointer-events: auto; display: flex; align-items: center; gap: 12px; border: 2px solid var(--ghibli-sun-gold); box-shadow: 0 8px 20px rgba(0,0,0,0.6);">
+          <span style="font-family: var(--font-heading); font-weight: 800; color: var(--text-dark); font-size: 0.95rem;">⚡ Turn AP:</span>
+          <div style="display: flex; gap: 6px;" id="ap-dots-container"></div>
         </div>
       </div>
 

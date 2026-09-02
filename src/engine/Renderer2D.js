@@ -1,5 +1,6 @@
 import { synth } from './SoundSynth.js';
 import { SpriteAnimation } from './SpriteAnimation.js';
+import { SkeletalPaperdoll } from './SkeletalPaperdoll.js';
 
 export class Renderer2D {
   constructor(canvas) {
@@ -14,6 +15,9 @@ export class Renderer2D {
       src: '/hero_spritesheet.png',
       fps: 10
     });
+
+    // Native 2D Canvas Modular Skeletal Animator
+    this.skeletalPaperdoll = new SkeletalPaperdoll(this);
 
     this.particles = [];
     this.floaters = [];
@@ -120,8 +124,8 @@ export class Renderer2D {
         const depthConfig = sceneData.depthScale || {
           yMin: sceneData.bounds ? sceneData.bounds.yMin : 320,
           yMax: sceneData.bounds ? sceneData.bounds.yMax : 650,
-          minScale: 2.2,
-          maxScale: 4.2
+          minScale: 3.2,
+          maxScale: 5.6
         };
 
         const range = Math.max(1, depthConfig.yMax - depthConfig.yMin);
@@ -404,19 +408,20 @@ export class Renderer2D {
           const gridYMin = 330;
           const gridYMax = 660;
           const normY = Math.max(0, Math.min(1, (ent.renderY - gridYMin) / (gridYMax - gridYMin)));
-          const drawScale = 1.9 + normY * 2.2;
+          const drawScale = 2.4 + normY * 2.6;
           const heroClass = (this.gameEngine && this.gameEngine.statSystem) ? this.gameEngine.statSystem.heroClass : 'Fighter';
           
-          this.heroSpriteSheet.drawHeroSprite(
-            this.ctx,
+          this.renderHeroPaperdoll(
             Math.round(ent.renderX),
             Math.round(ent.renderY + 12),
-            facingDir,
             isWalking,
-            false,
-            drawScale,
+            0,
             heroClass,
-            null
+            false,
+            null,
+            facingDir,
+            drawScale,
+            true
           );
 
           // Hero Health Bar
@@ -431,7 +436,7 @@ export class Renderer2D {
           const gridYMin = 330;
           const gridYMax = 660;
           const normY = Math.max(0, Math.min(1, (targetPxY - gridYMin) / (gridYMax - gridYMin)));
-          const drawScale = 1.9 + normY * 2.2;
+          const drawScale = 2.4 + normY * 2.6;
 
           // Render Enemies
           if (ent.name && ent.name.includes('Chieftain')) {
@@ -536,8 +541,16 @@ export class Renderer2D {
     this.ctx.restore();
   }
 
-  renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null, facingDir = 'down', drawScale = 3.6) {
-    this.heroSpriteSheet.drawHeroSprite(this.ctx, x, y, facingDir, isWalking, isStealth, drawScale, heroClass || 'Fighter', cloakColor);
+  renderHeroPaperdoll(x, y, isWalking = false, walkStep = 0, heroClass = 'Fighter', isStealth = false, cloakColor = null, facingDir = 'down', drawScale = 3.6, isCombat = false) {
+    const equipment = (this.gameEngine && this.gameEngine.inventorySystem) ? this.gameEngine.inventorySystem.equipment : {};
+    
+    if (isWalking && this.skeletalPaperdoll.animState === 'idle') {
+      this.skeletalPaperdoll.setAnimation('walk');
+    } else if (!isWalking && this.skeletalPaperdoll.animState === 'walk') {
+      this.skeletalPaperdoll.setAnimation('idle');
+    }
+
+    this.skeletalPaperdoll.draw(this.ctx, x, y, facingDir, drawScale, equipment, cloakColor, isCombat);
   }
 
   renderNPCSorceress(x, y) {

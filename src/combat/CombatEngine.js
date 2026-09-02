@@ -200,6 +200,10 @@ export class CombatEngine {
 
     attacker.ap -= apCost;
 
+    if (attacker.isPlayer && this.gameEngine && this.gameEngine.renderer && this.gameEngine.renderer.skeletalPaperdoll) {
+      this.gameEngine.renderer.skeletalPaperdoll.setAnimation('attack_melee');
+    }
+
     const hitChance = Math.min(95, Math.max(30, 70 + (this.statSystem.stats.weaponry - 10)));
     const roll = Math.random() * 100;
 
@@ -252,6 +256,10 @@ export class CombatEngine {
 
     caster.ap -= spell.apCost;
     synth.playSpell();
+
+    if (caster.isPlayer && this.gameEngine && this.gameEngine.renderer && this.gameEngine.renderer.skeletalPaperdoll) {
+      this.gameEngine.renderer.skeletalPaperdoll.setAnimation('cast_spell');
+    }
 
     if (this.gameEngine && this.gameEngine.renderer) {
       const quadCaster = this.gameEngine.renderer.getPerspectiveTileQuad(caster.col, caster.row);
