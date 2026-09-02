@@ -702,6 +702,13 @@ class GameEngine {
               <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.ring ? '#802bb0' : '#888'};">${eq.ring ? eq.ring.icon + ' ' + eq.ring.name : '[Empty]'}</span>
               ${eq.ring ? `<button class="btn-unequip-slot" data-slot="ring" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
+
+            <!-- Heroic Baldric Slot -->
+            <div class="paperdoll-slot" data-slot="baldric" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">🎽 Heroic Baldric:</span>
+              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.baldric ? (eq.baldric.color || '#b82531') : '#888'};">${eq.baldric ? eq.baldric.icon + ' ' + eq.baldric.name : '[Empty]'}</span>
+              ${eq.baldric ? `<button class="btn-unequip-slot" data-slot="baldric" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            </div>
           </div>
 
           <!-- Column 2: Scrollable Satchel Items Pouch -->

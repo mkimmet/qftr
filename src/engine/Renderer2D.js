@@ -1,6 +1,7 @@
 import { synth } from './SoundSynth.js';
 import { SpriteAnimation } from './SpriteAnimation.js';
 import { SkeletalPaperdoll } from './SkeletalPaperdoll.js';
+import { SkeletalGoblin } from './SkeletalGoblin.js';
 
 export class Renderer2D {
   constructor(canvas) {
@@ -16,8 +17,9 @@ export class Renderer2D {
       fps: 10
     });
 
-    // Native 2D Canvas Modular Skeletal Animator
+    // Native 2D Canvas Modular Skeletal Animators
     this.skeletalPaperdoll = new SkeletalPaperdoll(this);
+    this.skeletalGoblin = new SkeletalGoblin();
 
     this.particles = [];
     this.floaters = [];
@@ -202,25 +204,34 @@ export class Renderer2D {
 
     if (sceneData.hotspots && sceneData.hotspots.length > 0) {
       sceneData.hotspots.forEach(hs => {
-        if (hs.type === 'npc') {
+        if (hs.type === 'npc' || hs.type === 'combat') {
           depthEntities.push({
-            type: 'npc',
+            type: hs.type,
             depthY: hs.y + hs.h,
             render: () => {
-              this.ctx.save();
-              this.ctx.fillStyle = 'rgba(0,0,0,0.35)';
-              this.ctx.beginPath();
-              this.ctx.ellipse(hs.x + hs.w / 2, hs.y + hs.h - 10, 24, 10, 0, 0, Math.PI * 2);
-              this.ctx.fill();
+              if (hs.type === 'combat' && (hs.enemyType && hs.enemyType.includes('Goblin') || hs.id.includes('goblin'))) {
+                this.skeletalGoblin.draw(this.ctx, hs.x + hs.w / 2, hs.y + hs.h - 10, false, 3.6);
+                this.ctx.font = '700 13px "Cinzel", serif';
+                this.ctx.fillStyle = '#f4be42';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(hs.label, hs.x + hs.w / 2, hs.y - 10);
+              } else {
+                this.ctx.save();
+                this.ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                this.ctx.beginPath();
+                this.ctx.ellipse(hs.x + hs.w / 2, hs.y + hs.h - 10, 24, 10, 0, 0, Math.PI * 2);
+                this.ctx.fill();
 
-              this.ctx.font = '44px sans-serif';
-              this.ctx.textAlign = 'center';
-              this.ctx.fillText(hs.npcId === 'zara' ? '🔮' : '⚔️', hs.x + hs.w / 2, hs.y + hs.h - 20);
+                this.ctx.font = '44px sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(hs.npcId === 'zara' ? '🔮' : (hs.type === 'combat' ? '👺' : '⚔️'), hs.x + hs.w / 2, hs.y + hs.h - 20);
 
-              this.ctx.font = '700 13px "Cinzel", serif';
-              this.ctx.fillStyle = '#f4be42';
-              this.ctx.fillText(hs.label, hs.x + hs.w / 2, hs.y + 15);
-              this.ctx.restore();
+                this.ctx.font = '700 13px "Cinzel", serif';
+                this.ctx.fillStyle = '#f4be42';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(hs.label, hs.x + hs.w / 2, hs.y + 15);
+                this.ctx.restore();
+              }
             }
           });
         }
@@ -367,48 +378,49 @@ export class Renderer2D {
         const targetPxX = basePxX + shakeX;
         const targetPxY = basePxY;
 
+        // Smooth 60 FPS pixel movement interpolation for both player and enemy entities!
+        if (!ent.renderX) ent.renderX = targetPxX;
+        if (!ent.renderY) ent.renderY = targetPxY;
+
+        const dx = targetPxX - ent.renderX;
+        const dy = targetPxY - ent.renderY;
+        const dist = Math.hypot(dx, dy);
+
+        let isWalking = false;
+        let facingDir = ent.facingDir || (ent.isPlayer ? 'right' : 'left');
+
+        const stepSpeed = 4.5;
+        if (dist > stepSpeed) {
+          isWalking = true;
+          ent.renderX += (dx / dist) * stepSpeed;
+          ent.renderY += (dy / dist) * stepSpeed;
+
+          const angle = Math.atan2(dy, dx);
+          if (angle > -Math.PI / 8 && angle <= Math.PI / 8) facingDir = 'right';
+          else if (angle > Math.PI / 8 && angle <= (3 * Math.PI) / 8) facingDir = 'down_right';
+          else if (angle > (3 * Math.PI) / 8 && angle <= (5 * Math.PI) / 8) facingDir = 'down';
+          else if (angle > (5 * Math.PI) / 8 && angle <= (7 * Math.PI) / 8) facingDir = 'down_left';
+          else if (angle > (-3 * Math.PI) / 8 && angle <= -Math.PI / 8) facingDir = 'up_right';
+          else if (angle > (-5 * Math.PI) / 8 && angle <= (-3 * Math.PI) / 8) facingDir = 'up';
+          else if (angle > (-7 * Math.PI) / 8 && angle <= (-5 * Math.PI) / 8) facingDir = 'up_left';
+          else facingDir = 'left';
+          ent.facingDir = facingDir;
+        } else {
+          isWalking = false;
+          ent.renderX = targetPxX;
+          ent.renderY = targetPxY;
+        }
+
+        const gridYMin = 330;
+        const gridYMax = 660;
+        const normY = Math.max(0, Math.min(1, (ent.renderY - gridYMin) / (gridYMax - gridYMin)));
+        const drawScale = 2.4 + normY * 2.6;
+
         if (ent.isPlayer) {
-          if (!ent.renderX) ent.renderX = targetPxX;
-          if (!ent.renderY) ent.renderY = targetPxY;
-
-          const dx = targetPxX - ent.renderX;
-          const dy = targetPxY - ent.renderY;
-          const dist = Math.hypot(dx, dy);
-
-          let isWalking = false;
-          let facingDir = ent.facingDir || 'right';
-
-          const stepSpeed = 4.5;
-          if (dist > stepSpeed) {
-            isWalking = true;
-            ent.renderX += (dx / dist) * stepSpeed;
-            ent.renderY += (dy / dist) * stepSpeed;
-
-            const angle = Math.atan2(dy, dx);
-            if (angle > -Math.PI / 8 && angle <= Math.PI / 8) facingDir = 'right';
-            else if (angle > Math.PI / 8 && angle <= (3 * Math.PI) / 8) facingDir = 'down_right';
-            else if (angle > (3 * Math.PI) / 8 && angle <= (5 * Math.PI) / 8) facingDir = 'down';
-            else if (angle > (5 * Math.PI) / 8 && angle <= (7 * Math.PI) / 8) facingDir = 'down_left';
-            else if (angle > (-3 * Math.PI) / 8 && angle <= -Math.PI / 8) facingDir = 'up_right';
-            else if (angle > (-5 * Math.PI) / 8 && angle <= (-3 * Math.PI) / 8) facingDir = 'up';
-            else if (angle > (-7 * Math.PI) / 8 && angle <= (-5 * Math.PI) / 8) facingDir = 'up_left';
-            else facingDir = 'left';
-            ent.facingDir = facingDir;
-          } else {
-            isWalking = false;
-            ent.renderX = targetPxX;
-            ent.renderY = targetPxY;
-          }
-
           if (isWalking) {
             this.heroSpriteSheet.update();
           }
 
-          // Calculate smooth depth scale gradually from interpolated renderY position
-          const gridYMin = 330;
-          const gridYMax = 660;
-          const normY = Math.max(0, Math.min(1, (ent.renderY - gridYMin) / (gridYMax - gridYMin)));
-          const drawScale = 2.4 + normY * 2.6;
           const heroClass = (this.gameEngine && this.gameEngine.statSystem) ? this.gameEngine.statSystem.heroClass : 'Fighter';
           
           this.renderHeroPaperdoll(
@@ -433,38 +445,50 @@ export class Renderer2D {
           this.ctx.fillRect(ent.renderX - barW / 2, ent.renderY - Math.round(24 * drawScale), barW * hpPct, 6);
 
         } else {
-          const gridYMin = 330;
-          const gridYMax = 660;
-          const normY = Math.max(0, Math.min(1, (targetPxY - gridYMin) / (gridYMax - gridYMin)));
-          const drawScale = 2.4 + normY * 2.6;
-
           // Render Enemies
-          if (ent.name && ent.name.includes('Chieftain')) {
-            this.renderMonsterChieftain(targetPxX, targetPxY + 20, drawScale);
+          const renderX = Math.round(ent.renderX);
+          const renderY = Math.round(ent.renderY);
+
+          if (ent.name && ent.name.includes('Goblin')) {
+            this.skeletalGoblin.draw(this.ctx, renderX, renderY + 12, isWalking, drawScale);
+
+            this.ctx.font = '700 12px "Cinzel", serif';
+            this.ctx.fillStyle = '#f4be42';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(ent.name, renderX, renderY - Math.round(18 * drawScale));
+
+            const hpPct = Math.max(0, ent.hp / ent.maxHp);
+            const barW = Math.round(40 * (drawScale / 3.0));
+            this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            this.ctx.fillRect(renderX - barW / 2, renderY - Math.round(14 * drawScale), barW, 6);
+            this.ctx.fillStyle = '#d64545';
+            this.ctx.fillRect(renderX - barW / 2, renderY - Math.round(14 * drawScale), barW * hpPct, 6);
+          } else if (ent.name && ent.name.includes('Chieftain')) {
+            this.renderMonsterChieftain(renderX, renderY + 20, drawScale);
           } else if (ent.name && ent.name.includes('Arch-Lich')) {
-            this.renderMonsterArchLich(targetPxX, targetPxY + 20, drawScale);
+            this.renderMonsterArchLich(renderX, renderY + 20, drawScale);
           } else {
             this.ctx.save();
             this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
             this.ctx.beginPath();
-            this.ctx.ellipse(targetPxX, targetPxY + 20, 20 * (drawScale / 3.0), 8 * (drawScale / 3.0), 0, 0, Math.PI * 2);
+            this.ctx.ellipse(renderX, renderY + 20, 20 * (drawScale / 3.0), 8 * (drawScale / 3.0), 0, 0, Math.PI * 2);
             this.ctx.fill();
 
             const monsterFontSize = Math.round(28 + normY * 32);
             this.ctx.font = `${monsterFontSize}px sans-serif`;
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(ent.portrait || '👺', targetPxX, targetPxY + 14);
+            this.ctx.fillText(ent.portrait || '👺', renderX, renderY + 14);
 
             this.ctx.font = '700 12px "Cinzel", serif';
             this.ctx.fillStyle = '#f4be42';
-            this.ctx.fillText(ent.name, targetPxX, targetPxY - Math.round(18 * drawScale));
+            this.ctx.fillText(ent.name, renderX, renderY - Math.round(18 * drawScale));
 
             const hpPct = Math.max(0, ent.hp / ent.maxHp);
             const barW = Math.round(40 * (drawScale / 3.0));
             this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            this.ctx.fillRect(targetPxX - barW / 2, targetPxY - Math.round(14 * drawScale), barW, 6);
+            this.ctx.fillRect(renderX - barW / 2, renderY - Math.round(14 * drawScale), barW, 6);
             this.ctx.fillStyle = '#d64545';
-            this.ctx.fillRect(targetPxX - barW / 2, targetPxY - Math.round(14 * drawScale), barW * hpPct, 6);
+            this.ctx.fillRect(renderX - barW / 2, renderY - Math.round(14 * drawScale), barW * hpPct, 6);
             this.ctx.restore();
           }
         }

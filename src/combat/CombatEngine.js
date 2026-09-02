@@ -220,6 +220,9 @@ export class CombatEngine {
       this.addLog(`⚔️ ${attacker.name} strikes ${defender.name} with ${equippedWeapon ? equippedWeapon.name : 'fists'} for ${baseDmg} damage!`, 'damage');
 
       if (this.gameEngine && this.gameEngine.renderer) {
+        if (this.gameEngine.renderer.skeletalGoblin && defender.name && defender.name.includes('Goblin')) {
+          this.gameEngine.renderer.skeletalGoblin.setAnimation('hit_recoil');
+        }
         const quad = this.gameEngine.renderer.getPerspectiveTileQuad(defender.col, defender.row);
         this.gameEngine.renderer.addFloater(`💥 -${baseDmg} HP!`, quad.centerX, quad.centerY - 40, '#ff3333');
         this.gameEngine.renderer.spawnSpellParticleEffect('Flame Dart', quad.centerX, quad.centerY);
@@ -315,6 +318,10 @@ export class CombatEngine {
           synth.playFootstep();
           this.addLog(`🚶 ${enemy.name} moves closer to you.`, 'enemy');
         } else if (action.type === 'attack') {
+          if (this.gameEngine && this.gameEngine.renderer && this.gameEngine.renderer.skeletalGoblin) {
+            this.gameEngine.renderer.skeletalGoblin.setAnimation('attack_thrust');
+          }
+
           const hitChance = 75;
           const roll = Math.random() * 100;
           if (roll <= hitChance) {

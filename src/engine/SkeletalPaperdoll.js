@@ -222,6 +222,28 @@ export class SkeletalPaperdoll {
     ctx.fillStyle = '#d4af37';
     ctx.fillRect(-3 * s, -14 * s, 6 * s, 6 * s);
 
+    // Over-the-Shoulder Baldric Sash (Iconic The Realm Online Guild Sash)
+    if (equipment.baldric) {
+      ctx.save();
+      const baldricColor = equipment.baldric.color || '#b82531';
+      ctx.strokeStyle = baldricColor;
+      ctx.lineWidth = 3.5 * s;
+      ctx.beginPath();
+      ctx.moveTo(7 * s, -27 * s);
+      ctx.lineTo(-8 * s, -12 * s);
+      ctx.stroke();
+
+      // Gold Medallion Buckle on chest
+      ctx.fillStyle = '#d4af37';
+      ctx.beginPath();
+      ctx.arc(-0.5 * s, -19.5 * s, 3.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.8 * s;
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // Sheathed Scabbard on Hip during Exploration Mode
     if (!isCombat) {
       ctx.fillStyle = '#4a3525';

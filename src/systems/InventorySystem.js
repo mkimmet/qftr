@@ -6,7 +6,8 @@ export class InventorySystem {
       armor: null,
       shield: null,
       head: null,
-      ring: null
+      ring: null,
+      baldric: null
     };
 
     this.items = [
@@ -18,7 +19,11 @@ export class InventorySystem {
       { id: 'arcane_wand', name: 'Arcane Staff', count: 1, icon: '🪄', type: 'equip', slot: 'weapon', weaponDamage: 8, statBonus: { magic: 8, intelligence: 5 }, desc: 'Woven with blue runes (+8 Magic, +5 Intelligence).' },
       { id: 'leather_armor', name: 'Leather Cuirass', count: 1, icon: '🛡️', type: 'equip', slot: 'armor', armorDef: 4, statBonus: { parry: 5 }, desc: 'Sturdy boiled leather armor (+4 Armor Def, +5 Parry).' },
       { id: 'iron_helm', name: 'Iron Coif Helm', count: 1, icon: '🪖', type: 'equip', slot: 'head', armorDef: 3, statBonus: { parry: 4 }, desc: 'Forged iron coif helmet (+3 Armor Def, +4 Parry).' },
-      { id: 'ring_agility', name: 'Ring of Agility', count: 1, icon: '💍', type: 'equip', slot: 'ring', statBonus: { agility: 6 }, desc: 'An enchanted silver ring (+6 Agility).' }
+      { id: 'ring_agility', name: 'Ring of Agility', count: 1, icon: '💍', type: 'equip', slot: 'ring', statBonus: { agility: 6 }, desc: 'An enchanted silver ring (+6 Agility).' },
+      { id: 'scarlet_baldric', name: 'Scarlet Guard Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#b82531', statBonus: { strength: 6, weaponry: 5 }, desc: 'Crimson over-the-shoulder baldric worn by elite Blood Guard warriors (+6 Strength, +5 Weaponry).' },
+      { id: 'sapphire_baldric', name: 'Sapphire Arch-Mage Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#1d5ec9', statBonus: { magic: 8, intelligence: 5 }, desc: 'Royal blue silk baldric with gold rune insignia (+8 Magic, +5 Intelligence).' },
+      { id: 'emerald_baldric', name: 'Emerald Ranger Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#387654', statBonus: { agility: 6, stealth: 5 }, desc: 'Forest green leather sash worn by Spielburg Trackers (+6 Agility, +5 Stealth).' },
+      { id: 'gold_baldric', name: 'Sun Gold Champion Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#f4be42', statBonus: { strength: 4, agility: 4, magic: 4, parry: 8 }, desc: 'Radiant gold baldric awarded to Champions of the Realm (+4 All Stats, +8 Parry).' }
     ];
   }
 
