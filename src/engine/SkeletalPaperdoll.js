@@ -181,11 +181,46 @@ export class SkeletalPaperdoll {
     ctx.save();
     ctx.rotate(this.joints.torsoTilt);
 
-    ctx.fillStyle = equipment.armor ? '#4ea373' : '#6b4f38';
-    ctx.fillRect(-10 * s, -28 * s, 20 * s, 18 * s);
-    ctx.strokeStyle = '#291e14';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(-10 * s, -28 * s, 20 * s, 18 * s);
+    const armorId = equipment.armor ? equipment.armor.id : '';
+
+    if (armorId.includes('plate')) {
+      // Knight's Steel Plate Mail
+      ctx.fillStyle = '#b0c4de';
+      ctx.fillRect(-10 * s, -28 * s, 20 * s, 18 * s);
+      ctx.fillStyle = '#d4af37'; // Gold Trim
+      ctx.fillRect(-10 * s, -28 * s, 20 * s, 3 * s);
+      ctx.fillStyle = '#708090'; // Steel Plate Lines
+      ctx.fillRect(-6 * s, -22 * s, 12 * s, 10 * s);
+    } else if (armorId.includes('mage') || armorId.includes('robe')) {
+      // Arch-Mage Arcane Robes
+      ctx.fillStyle = '#1d5ec9';
+      ctx.fillRect(-11 * s, -28 * s, 22 * s, 22 * s);
+      ctx.fillStyle = '#f4be42'; // Gold Rune Sash
+      ctx.fillRect(-2 * s, -28 * s, 4 * s, 22 * s);
+    } else if (armorId.includes('thief') || armorId.includes('shadow')) {
+      // Shadow Thief Tunic
+      ctx.fillStyle = '#1c1524';
+      ctx.fillRect(-10 * s, -28 * s, 20 * s, 18 * s);
+      ctx.fillStyle = '#a83232'; // Red Leather Straps
+      ctx.fillRect(-8 * s, -24 * s, 16 * s, 2 * s);
+    } else if (equipment.armor) {
+      // Sturdy Boiled Leather Cuirass
+      ctx.fillStyle = '#8c5a14';
+      ctx.fillRect(-10 * s, -28 * s, 20 * s, 18 * s);
+      ctx.fillStyle = '#d4af37'; // Brass Studs
+      ctx.fillRect(-7 * s, -24 * s, 3 * s, 3 * s);
+      ctx.fillRect(4 * s, -24 * s, 3 * s, 3 * s);
+    } else {
+      // Default Traveler Linen Tunic
+      ctx.fillStyle = '#523b2b';
+      ctx.fillRect(-10 * s, -28 * s, 20 * s, 18 * s);
+    }
+
+    // Leather Belt & Buckle
+    ctx.fillStyle = '#291e14';
+    ctx.fillRect(-10 * s, -13 * s, 20 * s, 4 * s);
+    ctx.fillStyle = '#d4af37';
+    ctx.fillRect(-3 * s, -14 * s, 6 * s, 6 * s);
 
     // Sheathed Scabbard on Hip during Exploration Mode
     if (!isCombat) {
@@ -203,14 +238,33 @@ export class SkeletalPaperdoll {
     ctx.fillRect(-3 * s, 0, 5 * s, 14 * s);
 
     if (equipment.shield && isCombat) {
-      ctx.fillStyle = '#b8860b';
-      ctx.beginPath();
-      ctx.arc(-4 * s, 10 * s, 9 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.stroke();
-      ctx.font = `${Math.round(12 * s)}px sans-serif`;
-      ctx.fillText('🛡️', -10 * s, 14 * s);
+      const shieldId = equipment.shield.id;
+      if (shieldId && shieldId.includes('paladin')) {
+        // Gold Kite Shield
+        ctx.fillStyle = '#d4af37';
+        ctx.beginPath();
+        ctx.moveTo(-10 * s, 0);
+        ctx.lineTo(2 * s, 0);
+        ctx.lineTo(0, 18 * s);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#a83232'; // Red Cross
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+      } else {
+        // Timber Round Shield
+        ctx.fillStyle = '#6b4f38';
+        ctx.beginPath();
+        ctx.arc(-4 * s, 10 * s, 10 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#708090'; // Steel Rim
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+        ctx.fillStyle = '#d4af37'; // Boss
+        ctx.beginPath();
+        ctx.arc(-4 * s, 10 * s, 3 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.restore();
 
@@ -231,15 +285,25 @@ export class SkeletalPaperdoll {
 
     // Only draw weapon in hand during Combat Mode or Attack
     if (isCombat || this.animState === 'attack_melee') {
-      const isSword = !equipment.weapon || (equipment.weapon.slot === 'weapon' && (equipment.weapon.id.includes('sword') || equipment.weapon.id.includes('iron')));
-
-      if (isSword) {
-        // Golden Crossguard Hilt
-        ctx.fillStyle = '#d4af37';
+      const weaponId = equipment.weapon ? equipment.weapon.id : 'iron_sword';
+      
+      if (weaponId.includes('wand') || weaponId.includes('staff')) {
+        // Arcane Staff with Glowing Crystal Tip
+        ctx.fillStyle = '#5c4028';
+        ctx.fillRect(-1 * s, 5 * s, 3 * s, 36 * s);
+        ctx.fillStyle = '#00e5ff'; // Glowing Mana Gem
+        ctx.shadowColor = '#00e5ff';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0.5 * s, 2 * s, 5 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else {
+        // Steel Metallic Broadsword
+        ctx.fillStyle = '#d4af37'; // Crossguard
         ctx.fillRect(-6 * s, 14 * s, 13 * s, 3 * s);
 
-        // Steel Metallic Blade (Extends Upward in Guard!)
-        ctx.fillStyle = '#e6f2ff';
+        ctx.fillStyle = '#e6f2ff'; // Steel Blade
         ctx.beginPath();
         ctx.moveTo(-2.5 * s, 17 * s);
         ctx.lineTo(3.5 * s, 17 * s);
@@ -247,23 +311,16 @@ export class SkeletalPaperdoll {
         ctx.closePath();
         ctx.fill();
 
-        // Blade Edge Sharpness Highlight
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = '#ffffff'; // Edge Highlight
         ctx.lineWidth = 1.2 * s;
         ctx.stroke();
 
-        // Blade Center Fuller Line
-        ctx.strokeStyle = '#a6b8c7';
+        ctx.strokeStyle = '#a6b8c7'; // Fuller Line
         ctx.lineWidth = 1 * s;
         ctx.beginPath();
         ctx.moveTo(0.5 * s, 17 * s);
         ctx.lineTo(0.5 * s, 44 * s);
         ctx.stroke();
-      } else {
-        const weaponIcon = equipment.weapon ? equipment.weapon.icon : '🗡️';
-        ctx.font = `${Math.round(20 * s)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(weaponIcon, 4 * s, 26 * s);
       }
 
       // Render Glowing Slash Arc Trail during Melee Attack Arc
@@ -294,16 +351,37 @@ export class SkeletalPaperdoll {
     ctx.fillStyle = '#222';
     ctx.fillRect(2 * s, -35 * s, 2 * s, 2 * s);
 
-    if (equipment.head) {
-      ctx.font = `${Math.round(16 * s)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(equipment.head.icon || '🪖', 0, -34 * s);
+    const headId = equipment.head ? equipment.head.id : '';
+
+    if (headId.includes('helm') || headId.includes('iron')) {
+      // Metallic Iron Helmet Visor
+      ctx.fillStyle = '#708090';
+      ctx.beginPath();
+      ctx.arc(0, -35 * s, 10 * s, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#d4af37'; // Crest Band
+      ctx.fillRect(-10 * s, -35 * s, 20 * s, 3 * s);
+    } else if (headId.includes('wizard') || headId.includes('hood')) {
+      // Conical Wizard Hat
+      ctx.fillStyle = '#1d5ec9';
+      ctx.beginPath();
+      ctx.moveTo(-12 * s, -34 * s);
+      ctx.lineTo(12 * s, -34 * s);
+      ctx.lineTo(0, -52 * s);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#f4be42';
+      ctx.beginPath();
+      ctx.arc(0, -42 * s, 3 * s, 0, Math.PI * 2);
+      ctx.fill();
     } else {
-      // Hero Hair
+      // Hero Hair & Leather Headband
       ctx.fillStyle = '#8b4513';
       ctx.beginPath();
       ctx.arc(0, -37 * s, 9 * s, Math.PI, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = '#d4af37'; // Headband
+      ctx.fillRect(-9 * s, -37 * s, 18 * s, 2 * s);
     }
     ctx.restore(); // End Head
 
