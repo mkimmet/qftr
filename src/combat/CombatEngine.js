@@ -202,13 +202,16 @@ export class CombatEngine {
     const roll = Math.random() * 100;
 
     if (roll <= hitChance) {
-      // Direct Hit! Deep Thud Impact Sound!
-      synth.playThudHit();
-      const baseDmg = Math.floor(8 + (this.statSystem.stats.strength * 0.5) + (Math.random() * 6));
+      // Calculate Weapon Damage Bonus from equipped weapon item
+      const equippedWeapon = this.inventorySystem ? this.inventorySystem.equipment.weapon : null;
+      const weaponBaseDmg = equippedWeapon ? (equippedWeapon.weaponDamage || 10) : 6;
+      const baseDmg = Math.floor(weaponBaseDmg + (this.statSystem.stats.strength * 0.45) + (Math.random() * 5));
+
       defender.hp -= baseDmg;
       defender.hitShakeTime = Date.now();
       defender.hitFlashTime = Date.now();
-      this.addLog(`⚔️ ${attacker.name} strikes ${defender.name} for ${baseDmg} damage!`, 'damage');
+      synth.playThudHit();
+      this.addLog(`⚔️ ${attacker.name} strikes ${defender.name} with ${equippedWeapon ? equippedWeapon.name : 'fists'} for ${baseDmg} damage!`, 'damage');
 
       if (this.gameEngine && this.gameEngine.renderer) {
         const quad = this.gameEngine.renderer.getPerspectiveTileQuad(defender.col, defender.row);
@@ -305,12 +308,20 @@ export class CombatEngine {
           const hitChance = 75;
           const roll = Math.random() * 100;
           if (roll <= hitChance) {
-            synth.playThudHit();
-            const baseDmg = Math.floor(6 + Math.random() * 8);
+            let totalArmorDef = 0;
+            if (this.inventorySystem && this.inventorySystem.equipment) {
+              Object.values(this.inventorySystem.equipment).forEach(eq => {
+                if (eq && eq.armorDef) totalArmorDef += eq.armorDef;
+              });
+            }
+
+            const rawDmg = Math.floor(7 + Math.random() * 8);
+            const baseDmg = Math.max(2, rawDmg - totalArmorDef);
             const isPlayerDead = this.statSystem.takeDamage(baseDmg);
             this.playerEntity.hp = this.statSystem.hp.current;
             this.playerEntity.hitShakeTime = Date.now();
-            this.addLog(`💥 ${enemy.name} attacks you for ${baseDmg} damage!`, 'damage');
+            synth.playThudHit();
+            this.addLog(`💥 ${enemy.name} attacks you for ${baseDmg} damage (${totalArmorDef > 0 ? totalArmorDef + ' armor blocked' : 'unarmored'})!`, 'damage');
 
             if (this.gameEngine && this.gameEngine.renderer) {
               const quad = this.gameEngine.renderer.getPerspectiveTileQuad(this.playerEntity.col, this.playerEntity.row);

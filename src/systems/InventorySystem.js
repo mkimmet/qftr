@@ -4,7 +4,9 @@ export class InventorySystem {
     this.equipment = {
       weapon: null,
       armor: null,
-      shield: null
+      shield: null,
+      head: null,
+      ring: null
     };
 
     this.items = [
@@ -12,9 +14,11 @@ export class InventorySystem {
       { id: 'hp_potion', name: 'Healing Elixir', count: 3, icon: '🧪', type: 'consumable', desc: 'Restores 30 Health Points.' },
       { id: 'mp_potion', name: 'Mana Essence', count: 2, icon: '💧', type: 'consumable', desc: 'Restores 25 Mana Points.' },
       { id: 'lockpick', name: 'Thief Lockpicks', count: 1, icon: '🗝️', type: 'tool', desc: 'Essential tool for picking locks.' },
-      { id: 'iron_sword', name: 'Iron Broadsword', count: 1, icon: '🗡️', type: 'equip', slot: 'weapon', statBonus: { strength: 5, weaponry: 5 }, desc: 'A sharp broadsword (+5 Strength, +5 Weaponry).' },
-      { id: 'arcane_wand', name: 'Arcane Staff', count: 1, icon: '🪄', type: 'equip', slot: 'weapon', statBonus: { magic: 8, intelligence: 5 }, desc: 'Woven with blue runes (+8 Magic, +5 Intelligence).' },
-      { id: 'leather_armor', name: 'Leather Cuirass', count: 1, icon: '🛡️', type: 'equip', slot: 'armor', statBonus: { parry: 5 }, desc: 'Sturdy boiled leather armor (+5 Parry).' }
+      { id: 'iron_sword', name: 'Iron Broadsword', count: 1, icon: '🗡️', type: 'equip', slot: 'weapon', weaponDamage: 12, statBonus: { strength: 5, weaponry: 5 }, desc: 'A sharp broadsword (+12 Weapon Damage, +5 Strength).' },
+      { id: 'arcane_wand', name: 'Arcane Staff', count: 1, icon: '🪄', type: 'equip', slot: 'weapon', weaponDamage: 8, statBonus: { magic: 8, intelligence: 5 }, desc: 'Woven with blue runes (+8 Magic, +5 Intelligence).' },
+      { id: 'leather_armor', name: 'Leather Cuirass', count: 1, icon: '🛡️', type: 'equip', slot: 'armor', armorDef: 4, statBonus: { parry: 5 }, desc: 'Sturdy boiled leather armor (+4 Armor Def, +5 Parry).' },
+      { id: 'iron_helm', name: 'Iron Coif Helm', count: 1, icon: '🪖', type: 'equip', slot: 'head', armorDef: 3, statBonus: { parry: 4 }, desc: 'Forged iron coif helmet (+3 Armor Def, +4 Parry).' },
+      { id: 'ring_agility', name: 'Ring of Agility', count: 1, icon: '💍', type: 'equip', slot: 'ring', statBonus: { agility: 6 }, desc: 'An enchanted silver ring (+6 Agility).' }
     ];
   }
 
