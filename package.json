@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host --port 3050",
-    "build": "vite build",
+    "build": "npx vite build",
     "preview": "vite preview"
   },
-  "devDependencies": {
+  "dependencies": {
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "vite": "^5.0.0"
