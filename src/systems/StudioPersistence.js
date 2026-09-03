@@ -86,4 +86,59 @@ export class StudioPersistence {
     synth.playHit();
     this.gameEngine.showNotification('🗑️ Reset all saved room overrides to default.');
   }
+
+  exportPermanentJSON() {
+    if (!this.gameEngine.explorationScene || !this.gameEngine.explorationScene.rooms) {
+      return null;
+    }
+    const rooms = this.gameEngine.explorationScene.rooms;
+    const cleanRooms = {};
+
+    Object.keys(rooms).forEach(rId => {
+      const room = rooms[rId];
+      cleanRooms[rId] = {
+        id: room.id,
+        title: room.title,
+        desc: room.desc,
+        bounds: room.bounds,
+        depthScale: room.depthScale,
+        exits: room.exits,
+        obstacles: (room.obstacles || []).map(obs => ({
+          id: obs.id,
+          type: obs.type,
+          label: obs.label,
+          isSolid: obs.isSolid !== false,
+          isCutout: !!obs.isCutout,
+          depthY: obs.depthY,
+          points: obs.points,
+          x: obs.x,
+          y: obs.y,
+          w: obs.w,
+          h: obs.h,
+          radius: obs.radius
+        })),
+        props: room.props || [],
+        hotspots: room.hotspots || []
+      };
+    });
+
+    const jsonStr = JSON.stringify(cleanRooms, null, 2);
+
+    // Save directly to project repository via Vite Dev API Endpoint!
+    fetch('/api/save-rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: jsonStr
+    }).then(res => res.json()).then(data => {
+      synth.playStatUp();
+      this.gameEngine.showNotification('⚡ PERMANENT SAVE COMPLETE: Saved level layout directly to src/data/rooms.json!');
+    }).catch(err => {
+      // Fallback to clipboard if API unavailable
+      navigator.clipboard?.writeText?.(jsonStr).catch(() => {});
+      synth.playStatUp();
+      this.gameEngine.showNotification('💾 Saved level layout to clipboard!');
+    });
+
+    return cleanRooms;
+  }
 }

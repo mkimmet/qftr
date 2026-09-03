@@ -13,6 +13,7 @@ import { GameRegistry } from './systems/GameRegistry.js';
 import { EventEngine } from './systems/EventEngine.js';
 import { LevelEditor } from './engine/LevelEditor.js';
 import { AdminStudio } from './engine/AdminStudio.js';
+import { SkeletalStudio } from './engine/SkeletalStudio.js';
 import { Renderer2D } from './engine/Renderer2D.js';
 import { Pathfinder2D } from './engine/Pathfinder2D.js';
 import { CombatEngine } from './combat/CombatEngine.js';
@@ -41,6 +42,7 @@ class GameEngine {
     this.artUploadManager = new ArtUploadManager(this);
     this.levelEditor = new LevelEditor(this);
     this.adminStudio = new AdminStudio(this);
+    this.skeletalStudio = new SkeletalStudio(this);
     this.merchantSystem = new MerchantSystem(this);
     this.hintSystem = new HintSystem(this);
     this.questSystem = new QuestSystem(this);
@@ -60,6 +62,7 @@ class GameEngine {
     // Sierra Verbs Sequence for Right-Click Cycling
     this.verbs = ['walk', 'look', 'talk', 'do', 'cast'];
     this.currentVerbIdx = 0;
+    this.activeInvTab = 'all';
 
     // Player Movement & Styling State
     this.playerState = {
@@ -206,6 +209,10 @@ class GameEngine {
 
     document.getElementById('btn-admin-studio').addEventListener('click', () => {
       this.adminStudio.toggleStudio();
+    });
+
+    document.getElementById('btn-skeletal-studio').addEventListener('click', () => {
+      this.skeletalStudio.toggle();
     });
 
     const purgeBtn = document.getElementById('btn-purge-rooms');
@@ -476,18 +483,16 @@ class GameEngine {
     this.updateCanvasCursor('cast');
 
     this.combatEngine.onBattleEndCallback = (isVictory) => {
-      setTimeout(() => {
-        this.combatScene.hide();
-        this.mode = 'exploration';
-        this.updateHUD();
-        this.updateCanvasCursor(this.explorationScene.currentVerb || 'walk');
-        if (isVictory) {
-          this.sierraScoreSystem.addPoints(`defeat_${enemyType}`, 25, `defeating ${enemyType} in combat`);
-          this.showNotification('🎉 Combat Victory! Returned to Spielburg Valley.');
-        } else {
-          this.showSierraDeathScreen(enemyType);
-        }
-      }, 1200);
+      this.combatScene.hide();
+      this.mode = 'exploration';
+      this.updateHUD();
+      this.updateCanvasCursor(this.explorationScene.currentVerb || 'walk');
+      if (isVictory) {
+        this.sierraScoreSystem.addPoints(`defeat_${enemyType}`, 25, `defeating ${enemyType} in combat`);
+        this.showNotification('🎉 Returned to Spielburg Valley!');
+      } else {
+        this.showSierraDeathScreen(enemyType);
+      }
     };
   }
 
@@ -642,19 +647,29 @@ class GameEngine {
     });
   }
 
-  showInventoryModal() {
+  showInventoryModal(targetScrollTop = 0) {
     const dialogueLayer = document.getElementById('dialogue-layer');
     dialogueLayer.style.display = 'flex';
 
     const eq = this.inventorySystem.equipment;
+    const activeTab = this.activeInvTab || 'all';
+
+    // Filter items based on active tab
+    const filteredItems = this.inventorySystem.items.filter(item => {
+      if (activeTab === 'all') return true;
+      if (activeTab === 'gear') return item.type === 'equip';
+      if (activeTab === 'consumable') return item.type === 'consumable';
+      if (activeTab === 'tool') return item.type === 'tool' || item.type === 'quest';
+      return true;
+    });
 
     dialogueLayer.innerHTML = `
-      <div class="dialogue-modal parchment-card" style="width: 780px; max-width: 95vw;">
+      <div class="dialogue-modal parchment-card" style="width: 820px; max-width: 95vw;">
         <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--parchment-border); padding-bottom: 10px; margin-bottom: 14px;">
           <div>
-            <span style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: var(--text-dark);">🛡️ Hero Paperdoll & Equipment</span>
-            <div style="font-size: 0.8rem; color: #8c5a14; font-weight: 700;">Equip Weapons, Armor, Shields & Rings to boost Combat Stats</div>
+            <span style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: var(--text-dark);">🛡️ Hero Paperdoll & Inventory</span>
+            <div style="font-size: 0.8rem; color: #8c5a14; font-weight: 700;">Equip Weapons, Armor, Shields & Accessories to boost Combat Stats</div>
           </div>
           <span style="font-weight: 800; font-size: 1.1rem; color: #8c5a14; background: rgba(244, 190, 66, 0.25); padding: 4px 14px; border-radius: 20px; border: 1px solid var(--parchment-border);">💰 Gold: ${this.inventorySystem.gold}</span>
         </div>
@@ -663,75 +678,114 @@ class GameEngine {
         <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; margin-bottom: 16px;">
           
           <!-- Column 1: Visual Equipment Paperdoll & Slots -->
-          <div style="background: rgba(140, 109, 70, 0.15); border: 2px solid var(--parchment-border); padding: 14px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="background: rgba(140, 109, 70, 0.15); border: 2px solid var(--parchment-border); padding: 14px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px;">
             <div style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #5e410c; text-align: center; border-bottom: 1px solid rgba(140,109,70,0.3); padding-bottom: 6px;">
               👤 Equipped Gear Slots
             </div>
 
-            <!-- Headgear Slot -->
-            <div class="paperdoll-slot" data-slot="head" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">🪖 Head:</span>
-              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.head ? '#2b4c7e' : '#888'};">${eq.head ? eq.head.icon + ' ' + eq.head.name : '[Empty]'}</span>
-              ${eq.head ? `<button class="btn-unequip-slot" data-slot="head" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            <!-- Shirt Slot -->
+            <div class="paperdoll-slot" data-slot="shirt" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">👕 Shirt:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.shirt ? '#387654' : '#888'};">${eq.shirt ? eq.shirt.icon + ' ' + eq.shirt.name : '[Empty]'}</span>
+              ${eq.shirt ? `<button class="btn-unequip-slot" data-slot="shirt" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
 
-            <!-- Weapon Slot -->
-            <div class="paperdoll-slot" data-slot="weapon" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">🗡️ Weapon:</span>
-              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.weapon ? '#9e5a1b' : '#888'};">${eq.weapon ? eq.weapon.icon + ' ' + eq.weapon.name : '[Empty]'}</span>
-              ${eq.weapon ? `<button class="btn-unequip-slot" data-slot="weapon" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            <!-- Pants Slot -->
+            <div class="paperdoll-slot" data-slot="pants" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">👖 Pants/Robe:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.pants ? '#2b4c7e' : '#888'};">${eq.pants ? eq.pants.icon + ' ' + eq.pants.name : '[Empty]'}</span>
+              ${eq.pants ? `<button class="btn-unequip-slot" data-slot="pants" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
 
-            <!-- Armor Slot -->
-            <div class="paperdoll-slot" data-slot="armor" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">🛡️ Armor:</span>
-              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.armor ? '#387654' : '#888'};">${eq.armor ? eq.armor.icon + ' ' + eq.armor.name : '[Empty]'}</span>
-              ${eq.armor ? `<button class="btn-unequip-slot" data-slot="armor" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            <!-- Shoes Slot -->
+            <div class="paperdoll-slot" data-slot="shoes" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">🥾 Shoes/Boots:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.shoes ? '#5e410c' : '#888'};">${eq.shoes ? eq.shoes.icon + ' ' + eq.shoes.name : '[Empty]'}</span>
+              ${eq.shoes ? `<button class="btn-unequip-slot" data-slot="shoes" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
 
-            <!-- Shield Slot -->
-            <div class="paperdoll-slot" data-slot="shield" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">🛡️ Shield:</span>
-              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.shield ? '#5e410c' : '#888'};">${eq.shield ? eq.shield.icon + ' ' + eq.shield.name : '[Empty]'}</span>
-              ${eq.shield ? `<button class="btn-unequip-slot" data-slot="shield" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            <!-- Helmet Slot -->
+            <div class="paperdoll-slot" data-slot="helmet" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">🪖 Helmet/Hat:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.helmet ? '#2b4c7e' : '#888'};">${eq.helmet ? eq.helmet.icon + ' ' + eq.helmet.name : '[Empty]'}</span>
+              ${eq.helmet ? `<button class="btn-unequip-slot" data-slot="helmet" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
 
-            <!-- Ring / Amulet Slot -->
-            <div class="paperdoll-slot" data-slot="ring" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">💍 Accessory:</span>
-              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.ring ? '#802bb0' : '#888'};">${eq.ring ? eq.ring.icon + ' ' + eq.ring.name : '[Empty]'}</span>
-              ${eq.ring ? `<button class="btn-unequip-slot" data-slot="ring" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            <!-- Cowl Slot -->
+            <div class="paperdoll-slot" data-slot="cowl" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">🥷 Cowl Hood:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.cowl ? '#802bb0' : '#888'};">${eq.cowl ? eq.cowl.icon + ' ' + eq.cowl.name : '[Empty]'}</span>
+              ${eq.cowl ? `<button class="btn-unequip-slot" data-slot="cowl" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
 
-            <!-- Heroic Baldric Slot -->
-            <div class="paperdoll-slot" data-slot="baldric" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 8px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dark);">🎽 Heroic Baldric:</span>
-              <span style="font-size: 0.85rem; font-weight: 800; color: ${eq.baldric ? (eq.baldric.color || '#b82531') : '#888'};">${eq.baldric ? eq.baldric.icon + ' ' + eq.baldric.name : '[Empty]'}</span>
-              ${eq.baldric ? `<button class="btn-unequip-slot" data-slot="baldric" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            <!-- Belt Slot -->
+            <div class="paperdoll-slot" data-slot="belt" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">🥋 Belt:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.belt ? '#8c5a14' : '#888'};">${eq.belt ? eq.belt.icon + ' ' + eq.belt.name : '[Empty]'}</span>
+              ${eq.belt ? `<button class="btn-unequip-slot" data-slot="belt" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
             </div>
+
+            <!-- Amulet Slot -->
+            <div class="paperdoll-slot" data-slot="amulet" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">📿 Amulet:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.amulet ? '#ff2244' : '#888'};">${eq.amulet ? eq.amulet.icon + ' ' + eq.amulet.name : '[Empty]'}</span>
+              ${eq.amulet ? `<button class="btn-unequip-slot" data-slot="amulet" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            </div>
+
+            <!-- Headband Slot -->
+            <div class="paperdoll-slot" data-slot="headband" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">👑 Headband/Circlet:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.headband ? '#d4af37' : '#888'};">${eq.headband ? eq.headband.icon + ' ' + eq.headband.name : '[Empty]'}</span>
+              ${eq.headband ? `<button class="btn-unequip-slot" data-slot="headband" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            </div>
+
+            <!-- Cape Slot -->
+            <div class="paperdoll-slot" data-slot="cape" style="background: rgba(255,255,255,0.6); border: 1px solid var(--parchment-border); padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark);">🦹 Cape/Cloak:</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: ${eq.cape ? (eq.cape.color || '#8b2626') : '#888'};">${eq.cape ? eq.cape.icon + ' ' + eq.cape.name : '[Empty]'}</span>
+              ${eq.cape ? `<button class="btn-unequip-slot" data-slot="cape" style="padding: 2px 6px; font-size: 0.7rem; background: #a83232; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Unequip</button>` : ''}
+            </div>
+
+            <!-- Strip Clothes / Underwear Action -->
+            <button id="btn-strip-all-gear" class="btn-ghibli btn-crimson" style="width: 100%; padding: 6px; font-size: 0.8rem; margin-top: 4px;">👙 Take Off Clothes & Strip to Underwear</button>
           </div>
 
-          <!-- Column 2: Scrollable Satchel Items Pouch -->
-          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px;">
-            <div style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #5e410c; border-bottom: 1px solid rgba(140,109,70,0.3); padding-bottom: 6px;">
-              🎒 Satchel Inventory Items
+          <!-- Column 2: Satchel Items & Category Tabs -->
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(140,109,70,0.3); padding-bottom: 6px;">
+              <span style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #5e410c;">🎒 Satchel Inventory Items</span>
+              <span style="font-size: 0.78rem; color: #8c5a14; font-weight: 700;">Count: ${filteredItems.length} items</span>
             </div>
 
-            ${this.inventorySystem.items.map(item => `
-              <div style="background: rgba(255, 255, 255, 0.55); border: 1px solid var(--parchment-border); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-                  <span style="font-size: 1.5rem; flex-shrink: 0;">${item.icon}</span>
-                  <div>
-                    <div style="font-weight: 700; font-size: 0.9rem; color: #291e14;">${item.name} ${item.count > 1 ? `<span style="color: #8c5a14;">(x${item.count})</span>` : ''}</div>
-                    <div style="font-size: 0.78rem; color: #524030; margin-top: 2px;">${item.desc}</div>
+            <!-- Category Tabs Header -->
+            <div style="display: flex; gap: 6px; background: rgba(140,109,70,0.15); padding: 4px; border-radius: 8px; border: 1px solid var(--parchment-border);">
+              <button class="btn-inv-tab ${activeTab === 'all' ? 'active-tab' : ''}" data-tab="all" style="flex: 1; padding: 4px 6px; font-size: 0.78rem; font-weight: 800; border-radius: 6px; border: 1px solid ${activeTab === 'all' ? '#8c5a14' : 'transparent'}; background: ${activeTab === 'all' ? '#ffffff' : 'transparent'}; color: ${activeTab === 'all' ? '#291e14' : '#6b4f38'}; cursor: pointer;">✨ All</button>
+              <button class="btn-inv-tab ${activeTab === 'gear' ? 'active-tab' : ''}" data-tab="gear" style="flex: 1; padding: 4px 6px; font-size: 0.78rem; font-weight: 800; border-radius: 6px; border: 1px solid ${activeTab === 'gear' ? '#8c5a14' : 'transparent'}; background: ${activeTab === 'gear' ? '#ffffff' : 'transparent'}; color: ${activeTab === 'gear' ? '#291e14' : '#6b4f38'}; cursor: pointer;">⚔️ Gear</button>
+              <button class="btn-inv-tab ${activeTab === 'consumable' ? 'active-tab' : ''}" data-tab="consumable" style="flex: 1; padding: 4px 6px; font-size: 0.78rem; font-weight: 800; border-radius: 6px; border: 1px solid ${activeTab === 'consumable' ? '#8c5a14' : 'transparent'}; background: ${activeTab === 'consumable' ? '#ffffff' : 'transparent'}; color: ${activeTab === 'consumable' ? '#291e14' : '#6b4f38'}; cursor: pointer;">🧪 Potions</button>
+              <button class="btn-inv-tab ${activeTab === 'tool' ? 'active-tab' : ''}" data-tab="tool" style="flex: 1; padding: 4px 6px; font-size: 0.78rem; font-weight: 800; border-radius: 6px; border: 1px solid ${activeTab === 'tool' ? '#8c5a14' : 'transparent'}; background: ${activeTab === 'tool' ? '#ffffff' : 'transparent'}; color: ${activeTab === 'tool' ? '#291e14' : '#6b4f38'}; cursor: pointer;">🗝️ Tools</button>
+            </div>
+
+            <!-- Scrollable Items Container (Preserves Scroll Position!) -->
+            <div id="satchel-items-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px;">
+              ${filteredItems.length === 0 ? `<div style="text-align: center; padding: 20px; color: #888; font-style: italic;">No items in this category.</div>` : ''}
+
+              ${filteredItems.map(item => `
+                <div style="background: rgba(255, 255, 255, 0.55); border: 1px solid var(--parchment-border); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                  <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <span style="font-size: 1.5rem; flex-shrink: 0;">${item.icon}</span>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.9rem; color: #291e14;">${item.name} ${item.count > 1 ? `<span style="color: #8c5a14;">(x${item.count})</span>` : ''}</div>
+                      <div style="font-size: 0.78rem; color: #524030; margin-top: 2px;">${item.desc}</div>
+                    </div>
+                  </div>
+                  <div style="flex-shrink: 0;">
+                    ${item.type === 'consumable' ? `<button class="btn-ghibli btn-use-item" data-id="${item.id}" style="padding: 4px 10px; font-size: 0.8rem;">Use</button>` : ''}
+                    ${item.type === 'equip' ? `<button class="btn-ghibli btn-emerald btn-equip-item" data-id="${item.id}" style="padding: 4px 10px; font-size: 0.8rem;">${this.inventorySystem.equipment[item.slot]?.id === item.id ? 'Equipped' : 'Equip'}</button>` : ''}
                   </div>
                 </div>
-                <div style="flex-shrink: 0;">
-                  ${item.type === 'consumable' ? `<button class="btn-ghibli btn-use-item" data-id="${item.id}" style="padding: 4px 10px; font-size: 0.8rem;">Use</button>` : ''}
-                  ${item.type === 'equip' ? `<button class="btn-ghibli btn-emerald btn-equip-item" data-id="${item.id}" style="padding: 4px 10px; font-size: 0.8rem;">${this.inventorySystem.equipment[item.slot]?.id === item.id ? 'Equipped' : 'Equip'}</button>` : ''}
-                </div>
-              </div>
-            `).join('')}
+              `).join('')}
+            </div>
           </div>
         </div>
 
@@ -740,13 +794,44 @@ class GameEngine {
       </div>
     `;
 
+    // Restore Satchel Scroll Position!
+    const satchelContainer = dialogueLayer.querySelector('#satchel-items-container');
+    if (satchelContainer && targetScrollTop > 0) {
+      satchelContainer.scrollTop = targetScrollTop;
+    }
+
+    const getScrollTop = () => satchelContainer ? satchelContainer.scrollTop : 0;
+
+    // Tab Filter Buttons Listener
+    dialogueLayer.querySelectorAll('.btn-inv-tab').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        synth.playClick();
+        this.activeInvTab = e.currentTarget.getAttribute('data-tab');
+        this.showInventoryModal(0);
+      });
+    });
+
+    const stripBtn = dialogueLayer.querySelector('#btn-strip-all-gear');
+    if (stripBtn) {
+      stripBtn.addEventListener('click', () => {
+        synth.playClick();
+        Object.keys(this.inventorySystem.equipment).forEach(slot => {
+          this.inventorySystem.unequipItem(slot, this.statSystem);
+        });
+        this.showNotification('👙 Took off all clothes & armor! Hero is in underwear.');
+        this.updateHUD();
+        this.showInventoryModal(getScrollTop());
+      });
+    }
+
     dialogueLayer.querySelectorAll('.btn-use-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-id');
+        const currScroll = getScrollTop();
         if (this.inventorySystem.useItem(id, this.statSystem)) {
           synth.playStatUp();
           this.updateHUD();
-          this.showInventoryModal();
+          this.showInventoryModal(currScroll);
         }
       });
     });
@@ -754,10 +839,11 @@ class GameEngine {
     dialogueLayer.querySelectorAll('.btn-equip-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-id');
+        const currScroll = getScrollTop();
         if (this.inventorySystem.equipItem(id, this.statSystem)) {
           synth.playStatUp();
           this.updateHUD();
-          this.showInventoryModal();
+          this.showInventoryModal(currScroll);
           this.showNotification('🛡️ Equipped item & updated Hero stats!');
         }
       });
@@ -766,10 +852,11 @@ class GameEngine {
     dialogueLayer.querySelectorAll('.btn-unequip-slot').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const slot = e.currentTarget.getAttribute('data-slot');
+        const currScroll = getScrollTop();
         if (this.inventorySystem.unequipItem(slot, this.statSystem)) {
           synth.playClick();
           this.updateHUD();
-          this.showInventoryModal();
+          this.showInventoryModal(currScroll);
           this.showNotification(`🛡️ Unequipped ${slot}!`);
         }
       });

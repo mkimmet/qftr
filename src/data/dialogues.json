@@ -1,0 +1,142 @@
+{
+  "bruno": {
+    "root": {
+      "id": "root",
+      "npcName": "⚔️ Guildmaster Bruno",
+      "text": "Greetings, hero! Welcome to the Spielburg Guild Hall. How may I assist your hero's journey today?",
+      "options": [
+        { "text": "Who are you?", "targetNode": "ask_who" },
+        { "text": "Ask about active Monster Bounties", "targetNode": "ask_bounties" },
+        { "text": "How do I become a Paladin?", "targetNode": "ask_paladin", "reqClass": "Fighter" },
+        { "text": "Where can I train my combat skills?", "targetNode": "ask_skills" },
+        { "text": "Goodbye Guildmaster.", "targetNode": "end_dialogue" }
+      ]
+    },
+    "ask_who": {
+      "id": "ask_who",
+      "npcName": "⚔️ Guildmaster Bruno",
+      "text": "I am Guildmaster Bruno, veteran warrior of Spielburg. I train brave adventurers in the art of swordplay, parrying, and honor.",
+      "options": [
+        { "text": "Tell me about Monster Bounties.", "targetNode": "ask_bounties" },
+        { "text": "Back to main topics.", "targetNode": "root" }
+      ]
+    },
+    "ask_bounties": {
+      "id": "ask_bounties",
+      "npcName": "⚔️ Guildmaster Bruno",
+      "text": "A raid of goblin spearmen stole the golden Sun Amulet of Spielburg! Their Chieftain commands a cavern camp in Mistvale Forest. Defeat him and return the Sun Amulet to earn 50 Gold!",
+      "options": [
+        { "text": "Where is the Goblin Camp?", "targetNode": "ask_camp_location" },
+        { "text": "Back to main topics.", "targetNode": "root" }
+      ]
+    },
+    "ask_camp_location": {
+      "id": "ask_camp_location",
+      "npcName": "⚔️ Guildmaster Bruno",
+      "text": "Head east into Mistvale Forest. Follow the forest path until you reach the ancient Rune Sun Gate. Use the Sun Amulet to unlock the gate and enter the cavern!",
+      "options": [
+        { "text": "Thank you, Guildmaster!", "targetNode": "root" }
+      ]
+    },
+    "ask_paladin": {
+      "id": "ask_paladin",
+      "npcName": "⚔️ Guildmaster Bruno",
+      "text": "To unlock the Paladin Path, you must prove valor in battle and claim the Legendary Paladin Shield hidden in the Goblin Vault!",
+      "options": [
+        { "text": "I will seek the Paladin Shield!", "targetNode": "root" }
+      ]
+    },
+    "ask_skills": {
+      "id": "ask_skills",
+      "npcName": "⚔️ Guildmaster Bruno",
+      "text": "Step inside the Guild Hall and practice your sword strikes on the straw training dummy. You can also throw daggers at the target board in Town Square!",
+      "options": [
+        { "text": "Understood, Guildmaster.", "targetNode": "root" }
+      ]
+    }
+  },
+
+  "zara": {
+    "root": {
+      "id": "root",
+      "npcName": "🔮 Sorceress Zara",
+      "text": "Welcome, seeker of the arcane. I am Zara the Sorceress. What magic or potions do you seek today?",
+      "options": [
+        { "text": "Open Arcana Shop to Trade Goods", "targetNode": "open_shop" },
+        { "text": "Ask about Magic & Ley Lines", "targetNode": "ask_magic" },
+        { "text": "Where can I find new Spells?", "targetNode": "ask_spells" },
+        { "text": "Farewell, Zara.", "targetNode": "end_dialogue" }
+      ]
+    },
+    "ask_magic": {
+      "id": "ask_magic",
+      "npcName": "🔮 Sorceress Zara",
+      "text": "Magic flows through the ancient ley lines of Spielburg. Wizards channel mana into elemental Flame Darts, telekinetic Fetch, and blinding Dazzle spells.",
+      "options": [
+        { "text": "Where can I find new Spells?", "targetNode": "ask_spells" },
+        { "text": "Let me browse your Shop.", "targetNode": "open_shop" },
+        { "text": "Back to main topics.", "targetNode": "root" }
+      ]
+    },
+    "ask_spells": {
+      "id": "ask_spells",
+      "npcName": "🔮 Sorceress Zara",
+      "text": "I sell the Arcane Wizard Staff here at my shop. Furthermore, an ancient Scroll of Fetch lies hidden deep within the Wilderness Grove!",
+      "options": [
+        { "text": "Let me browse your Shop.", "targetNode": "open_shop" },
+        { "text": "Back to main topics.", "targetNode": "root" }
+      ]
+    }
+  },
+
+  "sheriff": {
+    "root": {
+      "id": "root",
+      "npcName": "🛡️ Sheriff Otto",
+      "text": "Halt, traveler! I am Sheriff Otto, Lawkeeper of Spielburg. Speak quickly—we have goblins threatening our borders!",
+      "options": [
+        { "text": "Tell me about the Goblin Threat", "targetNode": "ask_goblin" },
+        { "text": "Ask about the Notice Board", "targetNode": "ask_notice" },
+        { "text": "Keep up the good work, Sheriff.", "targetNode": "end_dialogue" }
+      ]
+    },
+    "ask_goblin": {
+      "id": "ask_goblin",
+      "npcName": "🛡️ Sheriff Otto",
+      "text": "The goblin raiders have set up a war camp in Whispering Cavern. Their Chieftain stole the Sun Amulet of Spielburg! The town council is paying top gold for any hero who recovers it.",
+      "options": [
+        { "text": "I will defeat the Goblin Chieftain!", "targetNode": "root" }
+      ]
+    },
+    "ask_notice": {
+      "id": "ask_notice",
+      "npcName": "🛡️ Sheriff Otto",
+      "text": "Inspect the Notice Board behind me for official bounties posted by the Town Sheriff and Guildmaster Bruno.",
+      "options": [
+        { "text": "Back to main topics.", "targetNode": "root" }
+      ]
+    }
+  },
+
+  "barnaby": {
+    "root": {
+      "id": "root",
+      "npcName": "🍎 Merchant Barnaby",
+      "text": "Fresh travel rations! Healing elixirs! Thief lockpicks! Welcome to Barnaby's General Market Stall!",
+      "options": [
+        { "text": "Browse Market Goods to Buy", "targetNode": "open_shop" },
+        { "text": "Ask about Thief Lockpicks", "targetNode": "ask_lockpicks" },
+        { "text": "Good day, Barnaby.", "targetNode": "end_dialogue" }
+      ]
+    },
+    "ask_lockpicks": {
+      "id": "ask_lockpicks",
+      "npcName": "🍎 Merchant Barnaby",
+      "text": "Shhh! Looking for rogue tools? I sell authentic Thief Lockpicks—very useful for picking locks on treasure chests!",
+      "options": [
+        { "text": "Show me your Market Goods.", "targetNode": "open_shop" },
+        { "text": "Back to main topics.", "targetNode": "root" }
+      ]
+    }
+  }
+}

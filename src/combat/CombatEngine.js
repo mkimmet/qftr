@@ -28,6 +28,8 @@ export class CombatEngine {
     this.gridMap.resetGrid();
     this.logs = [];
     this.isCombatActive = true;
+    this.isVictoryPhase = false;
+    synth.startCombatMusic();
 
     // Minimum 6 AP for hero turn actions!
     const heroMaxAP = Math.max(6, Math.floor(this.statSystem.stats.agility / 2) + 2);
@@ -112,26 +114,40 @@ export class CombatEngine {
   }
 
   handleTileClick(col, row) {
-    if (!this.isCombatActive || !this.getCurrentEntity().isPlayer) return;
+    if ((!this.isCombatActive && !this.isVictoryPhase) || !this.getCurrentEntity().isPlayer) return;
 
     const player = this.playerEntity;
     const targetTile = this.gridMap.getTile(col, row);
     if (!targetTile) return;
 
+    if (this.isVictoryPhase) {
+      player.ap = 99;
+    }
+
     const occupant = targetTile.occupiedBy;
 
     if (!occupant) {
-      const path = this.gridMap.findPath(player.col, player.row, col, row, player.ap);
-      if (path.length > 0 && path.length <= player.ap) {
+      const maxApMove = this.isVictoryPhase ? 99 : player.ap;
+      const path = this.gridMap.findPath(player.col, player.row, col, row, maxApMove);
+      if (path.length > 0 && (this.isVictoryPhase || path.length <= player.ap)) {
         this.gridMap.getTile(player.col, player.row).occupiedBy = null;
         player.col = col;
         player.row = row;
         targetTile.occupiedBy = player;
 
-        player.ap -= path.length;
+        if (!this.isVictoryPhase) {
+          player.ap -= path.length;
+        }
         synth.playFootstep();
-        this.addLog(`${player.name} moved to tile (${col}, ${row}) [-${path.length} AP].`, 'player');
+        this.addLog(`${player.name} moved to tile (${col}, ${row}).`, 'player');
         this.statSystem.practiceStat('agility', 5);
+
+        // Auto pickup ground loot if stepping onto a loot tile!
+        if (targetTile.loot) {
+          this.pickupLoot(targetTile);
+        }
+      } else if (targetTile.loot && player.col === col && player.row === row) {
+        this.pickupLoot(targetTile);
       }
     } else if (occupant && !occupant.isPlayer) {
       const colDiff = Math.abs(player.col - col);
@@ -373,45 +389,97 @@ export class CombatEngine {
   }
 
   handleEnemyDefeat(enemy) {
-    this.addLog(`🎉 ${enemy.name} has been vanquished! Victory!`, 'heal');
-    this.gridMap.getTile(enemy.col, enemy.row).occupiedBy = null;
+    this.addLog(`🎉 ${enemy.name} has been vanquished!`, 'heal');
+    const enemyTile = this.gridMap.getTile(enemy.col, enemy.row);
+    if (enemyTile) enemyTile.occupiedBy = null;
     this.entities = this.entities.filter(e => e.id !== enemy.id);
-    this.isCombatActive = false;
 
-    const rewardGold = Math.floor(50 + Math.random() * 60);
-    this.inventorySystem.gold += rewardGold;
-    this.addLog(`💰 Found ${rewardGold} Gold Coins on the defeated enemy.`, 'heal');
+    // Drop Tactical Ground Loot Pouch on vanquished enemy tile!
+    const dropTable = [
+      { icon: '💰', name: 'Satchel of Gold Coins', type: 'gold', amount: Math.floor(45 + Math.random() * 65) },
+      { icon: '🧪', name: 'Lesser Healing Elixir', type: 'item', item: { id: 'health_potion', name: 'Lesser Healing Elixir', count: 1, icon: '🧪', type: 'potion', desc: 'Restores 35 HP.' } },
+      { icon: '🪄', name: 'Arcane Mana Potion', type: 'item', item: { id: 'mana_potion', name: 'Arcane Mana Potion', count: 1, icon: '🪄', type: 'potion', desc: 'Restores 25 MP.' } },
+      { icon: '🎽', name: 'Emerald Guard Baldric', type: 'item', item: { id: 'emerald_baldric', name: 'Emerald Guard Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#387654', desc: 'Over-the-shoulder guild sash (+4 Agility).' } }
+    ];
+
+    const chosenLoot = dropTable[Math.floor(Math.random() * dropTable.length)];
+    if (enemyTile) {
+      enemyTile.loot = chosenLoot;
+      this.addLog(`🎁 ${enemy.name} dropped ${chosenLoot.name} ${chosenLoot.icon} on tile (${enemy.col}, ${enemy.row})!`, 'heal');
+    }
 
     if (enemy.name.includes('Goblin Chieftain')) {
-      this.inventorySystem.addItem({
-        id: 'sun_amulet',
-        name: 'Sun Amulet of Spielburg',
-        count: 1,
+      const questLoot = {
         icon: '☀️',
-        type: 'quest',
-        desc: 'A glowing ancient golden medallion bearing the royal seal of Spielburg Valley.'
-      });
-      synth.playStatUp();
-      this.addLog(`☀️ LOOTED SUN AMULET OF SPIELBURG! Deliver it to Bruno in Town Square.`, 'heal');
-      if (this.gameEngine) {
-        this.gameEngine.showNotification('☀️ LOOTED SUN AMULET OF SPIELBURG! Return to Bruno in Town Square.');
-      }
+        name: 'Sun Amulet of Spielburg',
+        type: 'item',
+        item: {
+          id: 'sun_amulet',
+          name: 'Sun Amulet of Spielburg',
+          count: 1,
+          icon: '☀️',
+          type: 'quest',
+          desc: 'A glowing ancient golden medallion bearing the royal seal of Spielburg Valley.'
+        }
+      };
+      if (enemyTile) enemyTile.loot = questLoot;
+      this.addLog(`☀️ DROPPED SUN AMULET OF SPIELBURG ON THE GROUND! Click tile to pick it up.`, 'heal');
     }
 
-    if (enemy.name === 'Shadow Arch-Lich') {
-      if (this.gameEngine) {
-        this.gameEngine.showVictoryEpilogue();
+    const remainingEnemies = this.entities.filter(e => !e.isPlayer);
+    if (remainingEnemies.length === 0) {
+      // 🏆 VICTORY PHASE! Keep combat active so player can collect loot!
+      this.isVictoryPhase = true;
+      this.playerEntity.ap = 99;
+      synth.stopCombatMusic();
+      synth.playVictoryFanfare();
+
+      this.addLog(`🏆 BATTLE VICTORY! Click ground tiles to collect loot, then click [🚪 Exit Battle Area].`, 'heal');
+
+      if (enemy.name === 'Shadow Arch-Lich') {
+        if (this.gameEngine) {
+          this.gameEngine.showVictoryEpilogue();
+        }
       }
     }
+  }
 
+  exitBattle() {
+    this.isCombatActive = false;
+    this.isVictoryPhase = false;
+    synth.stopCombatMusic();
     if (this.onBattleEndCallback) {
       this.onBattleEndCallback(true);
+    }
+  }
+
+  pickupLoot(tile) {
+    if (!tile || !tile.loot) return;
+    const loot = tile.loot;
+    tile.loot = null;
+
+    synth.playGoldJingle();
+
+    if (loot.type === 'gold') {
+      const amt = loot.amount || 50;
+      this.inventorySystem.gold += amt;
+      this.addLog(`🎒 Picked up ${loot.name} (+${amt} Gold)!`, 'heal');
+      if (this.gameEngine) {
+        this.gameEngine.showNotification(`💰 Picked up ${loot.name} (+${amt} Gold)!`);
+      }
+    } else if (loot.type === 'item' && loot.item) {
+      this.inventorySystem.addItem(loot.item);
+      this.addLog(`🎒 Picked up ${loot.item.name}!`, 'heal');
+      if (this.gameEngine) {
+        this.gameEngine.showNotification(`🎒 Picked up ${loot.item.name}!`);
+      }
     }
   }
 
   handlePlayerDefeat() {
     this.addLog(`☠️ You have been defeated in battle...`, 'damage');
     this.isCombatActive = false;
+    synth.stopCombatMusic();
     if (this.onBattleEndCallback) {
       this.onBattleEndCallback(false);
     }

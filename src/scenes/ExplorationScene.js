@@ -1,5 +1,7 @@
 import { synth } from '../engine/SoundSynth.js';
 import { Pathfinder2D } from '../engine/Pathfinder2D.js';
+import { NPCRenderer } from '../engine/NPCRenderer.js';
+import dialoguesData from '../data/dialogues.json';
 
 export class ExplorationScene {
   constructor(gameEngine) {
@@ -7,6 +9,8 @@ export class ExplorationScene {
     this.currentRoom = 'town_square';
     this.activeVerb = 'walk'; // 'walk' | 'look' | 'talk' | 'do' | 'cast'
     this.isSunGateUnlocked = false;
+    this.npcRenderer = new NPCRenderer();
+    this.dialogues = dialoguesData;
 
     // Background Images for Rooms
     this.bgImages = {
@@ -35,7 +39,7 @@ export class ExplorationScene {
 
     // Room Definitions
     this.rooms = {
-        town_square: {
+      town_square: {
         id: 'town_square',
         title: 'Spielburg Town Square & Market',
         bgImage: this.bgImages.town_square,
@@ -56,6 +60,10 @@ export class ExplorationScene {
           { id: 'prop_fountain', label: '⛲ Spielburg Fountain', icon: '⛲', x: 650, y: 440, depthY: 440, isInteractable: false }
         ],
         hotspots: [
+          { id: 'bruno_town_npc', label: '⚔️ Guildmaster Bruno', x: 580, y: 310, w: 90, h: 110, type: 'npc', npcId: 'bruno', desc: 'Guildmaster Bruno standing outside the Adventurers Guild.' },
+          { id: 'zara_town_npc', label: '🔮 Sorceress Zara', x: 260, y: 340, w: 90, h: 110, type: 'npc', npcId: 'zara', desc: 'Sorceress Zara standing outside her Arcane Shop.' },
+          { id: 'sheriff_town_npc', label: '🛡️ Sheriff Otto', x: 740, y: 360, w: 90, h: 110, type: 'npc', npcId: 'sheriff', desc: 'Sheriff Otto guarding the Notice Board.' },
+          { id: 'barnaby_town_npc', label: '🍎 Merchant Barnaby', x: 920, y: 440, w: 90, h: 110, type: 'npc', npcId: 'barnaby', desc: 'Merchant Barnaby selling market goods at his stall.' },
           { id: 'fountain', label: '⛲ Marble Fountain', x: 600, y: 400, w: 100, h: 80, type: 'action', action: 'drink_fountain', desc: 'Cool mountain spring water. Restores 10 HP.' },
           { id: 'notice_board', label: '📌 Notice Board', x: 780, y: 360, w: 80, h: 90, type: 'action', action: 'open_notice_board', desc: 'Bounty notices posted by the Town Sheriff & Guildmaster Bruno.' },
           { id: 'guild_door', label: '⚔️ Adventurers Guild Entrance', x: 600, y: 260, w: 120, h: 100, type: 'door', targetRoom: 'guild_hall', spawnX: 640, spawnY: 600, desc: 'Door leading into the Adventurers Guild Hall.' },
@@ -457,77 +465,49 @@ export class ExplorationScene {
   }
 
   triggerNPCDialogue(npcId) {
-    if (npcId === 'guildmaster') {
-      const hasSunAmulet = this.gameEngine.inventorySystem.hasItem('sun_amulet');
+    const key = (npcId === 'guildmaster' || npcId === 'bruno') ? 'bruno' : npcId;
+    const tree = this.dialogues[key] || this.dialogues['bruno'];
 
-      const guildmasterTree = [
-        {
-          id: 'root',
-          npcName: 'Guildmaster Bruno',
-          text: hasSunAmulet ? 'By Bruno\'s beard! You carry the stolen Sun Amulet of Spielburg!' : 'Welcome to the Adventurers Guild, Hero! What knowledge or bounties do you seek today?',
-          options: [
-            ...(hasSunAmulet ? [{ text: '☀️ [TURN IN QUEST] Deliver the Sun Amulet of Spielburg!', targetNode: 'turn_in_sun_amulet' }] : []),
-            { text: '☀️ Ask about "The Trial of Spielburg" Quest', targetNode: 'ans_sun_amulet' },
-            { text: 'Ask about the Goblin Bounty in Mistvale Forest', targetNode: 'ans_goblins' },
-            { text: 'Ask about the Shadow Arch-Lich threat', targetNode: 'ans_archlich' },
-            { text: '[FIGHTER] Ask how to improve sword technique', targetNode: 'ans_sword', reqClass: 'Fighter' },
-            { text: 'Farewell Guildmaster.', targetNode: 'end_dialogue' }
-          ]
-        },
-        {
+    if (!tree) return;
+
+    const hasSunAmulet = this.gameEngine.inventorySystem.hasItem('sun_amulet');
+    
+    // Dynamically inject Quest Turn In option if Bruno and hero holds Sun Amulet!
+    if (key === 'bruno' && hasSunAmulet && tree.root && tree.root.options) {
+      if (!tree.root.options.some(o => o.targetNode === 'turn_in_sun_amulet')) {
+        tree.root.options.unshift({
+          text: '☀️ [TURN IN QUEST] Deliver the Sun Amulet of Spielburg!',
+          targetNode: 'turn_in_sun_amulet'
+        });
+        tree['turn_in_sun_amulet'] = {
           id: 'turn_in_sun_amulet',
-          npcName: 'Guildmaster Bruno',
+          npcName: '⚔️ Guildmaster Bruno',
           text: 'HAIL THE HERO OF SPIELBURG! You unsealed the Rune Sun Gate and vanquished the Goblin Chieftain! Here is your reward of 100 Gold and 50 Sierra Score Points!',
           options: [
             { text: 'Thank you Guildmaster! Long live Spielburg!', targetNode: 'execute_turn_in' }
           ]
-        },
-        {
-          id: 'ans_sun_amulet',
-          npcName: 'Guildmaster Bruno',
-          text: 'The Shadow Goblins stole our royal Sun Amulet and fled into Whispering Cavern! Unseal the Rune Sun Gate in Mistvale Forest, defeat the Goblin Chieftain, and return the Sun Amulet to me for a royal reward of 100 Gold and 50 Sierra Score Points!',
-          options: [
-            { text: 'Ask about another topic...', targetNode: 'root' },
-            { text: 'I will retrieve the Sun Amulet at once!', targetNode: 'end_dialogue' }
-          ]
-        },
-        {
-          id: 'ans_goblins',
-          npcName: 'Guildmaster Bruno',
-          text: 'The Goblins have established a war camp in eastern Mistvale Forest! Defeat their spearmen and Chieftain for a reward of 25 Sierra Score Points & Gold.',
-          options: [
-            { text: 'Ask about another topic...', targetNode: 'root' },
-            { text: 'I will head into the forest now!', targetNode: 'end_dialogue' }
-          ]
-        },
-        {
-          id: 'ans_archlich',
-          npcName: 'Guildmaster Bruno',
-          text: 'The Shadow Arch-Lich looms inside the Void Citadel! Only a hero armed with high stats and powerful equipment can vanquish him.',
-          options: [
-            { text: 'Ask about another topic...', targetNode: 'root' },
-            { text: 'I shall prepare for battle!', targetNode: 'end_dialogue' }
-          ]
-        },
-        {
-          id: 'ans_sword',
-          npcName: 'Guildmaster Bruno',
-          text: 'Practice on the straw dummy in this room! Every drill increases your Weaponry stat and Strength.',
-          options: [
-            { text: 'Ask about another topic...', targetNode: 'root' },
-            { text: 'Thank you Guildmaster!', targetNode: 'end_dialogue' }
-          ]
-        }
-      ];
-
-      this.gameEngine.dialogueSystem.startDialogue(guildmasterTree, (selectedOption) => {
-        if (selectedOption.targetNode === 'execute_turn_in') {
-          this.gameEngine.inventorySystem.removeItem('sun_amulet', 1);
-          this.gameEngine.questSystem.completeQuest('trial_of_spielburg');
-          synth.playStatUp();
-          this.gameEngine.showNotification('🎉 QUEST COMPLETE: "The Trial of Spielburg"! (+100 Gold, +50 Sierra Score Points)');
-        }
-      });
+        };
+      }
     }
+
+    const npcData = {
+      name: (tree.root && tree.root.npcName) ? tree.root.npcName : (key === 'zara' ? '🔮 Sorceress Zara' : (key === 'sheriff' ? '🛡️ Sheriff Otto' : (key === 'barnaby' ? '🍎 Merchant Barnaby' : '⚔️ Guildmaster Bruno'))),
+      portraitEmoji: key === 'zara' ? '🔮' : (key === 'sheriff' ? '🛡️' : (key === 'barnaby' ? '🍎' : '⚔️'))
+    };
+
+    this.gameEngine.dialogueSystem.showSierraQA(npcData, tree, 'root', this.gameEngine.statSystem, (selectedOption) => {
+      if (selectedOption.targetNode === 'open_shop') {
+        this.gameEngine.dialogueSystem.hide();
+        this.gameEngine.merchantSystem.showShopModal();
+      } else if (selectedOption.targetNode === 'execute_turn_in') {
+        this.gameEngine.inventorySystem.removeItem('sun_amulet', 1);
+        this.gameEngine.inventorySystem.gold += 100;
+        this.gameEngine.questSystem.completeQuest('trial_of_spielburg');
+        synth.playStatUp();
+        this.gameEngine.updateHUD();
+        this.gameEngine.sierraScoreSystem.addPoints('trial_of_spielburg', 50, 'completing The Trial of Spielburg');
+        this.gameEngine.showNotification('🎉 QUEST COMPLETE: "The Trial of Spielburg"! (+100 Gold, +50 Sierra Score Points)');
+      }
+    });
   }
 }

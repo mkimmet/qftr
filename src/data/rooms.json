@@ -1,0 +1,53 @@
+{
+  "town_square": {
+    "id": "town_square",
+    "title": "Town Square of Spielburg",
+    "desc": "A charming medieval square with a marble fountain, timber-framed guild halls, and cobblestone paths.",
+    "bounds": { "xMin": 40, "xMax": 1240, "yMin": 320, "yMax": 660 },
+    "depthScale": { "yMin": 300, "yMax": 660, "minScale": 2.8, "maxScale": 5.8 },
+    "exits": {
+      "east": { "room": "forest_path", "spawnX": 80, "spawnY": 450, "msg": "Walked east into Mistvale Forest." }
+    },
+    "obstacles": [
+      { "id": "obs_fountain", "type": "circle", "x": 650, "y": 390, "radius": 45 },
+      { "id": "obs_house_left", "type": "rect", "x": 0, "y": 0, "w": 260, "h": 330 },
+      { "id": "obs_house_right", "type": "rect", "x": 960, "y": 0, "w": 320, "h": 330 }
+    ],
+    "props": [
+      { "id": "prop_fountain", "label": "⛲ Spielburg Fountain", "icon": "⛲", "x": 650, "y": 440, "depthY": 440, "isInteractable": false }
+    ],
+    "hotspots": [
+      { "id": "fountain", "label": "⛲ Marble Fountain", "x": 600, "y": 400, "w": 100, "h": 80, "type": "action", "action": "drink_fountain", "desc": "Cool mountain spring water. Restores 10 HP." },
+      { "id": "notice_board", "label": "📌 Notice Board", "x": 780, "y": 360, "w": 80, "h": 90, "type": "action", "action": "open_notice_board", "desc": "Bounty notices posted by the Town Sheriff & Guildmaster Bruno." },
+      { "id": "guild_door", "label": "⚔️ Adventurers Guild Entrance", "x": 600, "y": 260, "w": 120, "h": 100, "type": "door", "targetRoom": "guild_hall", "spawnX": 640, "spawnY": 600, "desc": "Door leading into the Adventurers Guild Hall." },
+      { "id": "magic_door", "label": "🔮 Zara's Arcane Shop", "x": 280, "y": 320, "w": 100, "h": 100, "type": "door", "targetRoom": "magic_shop", "spawnX": 1100, "spawnY": 450, "desc": "Shop of Zara the Sorceress." },
+      { "id": "forest_exit", "label": "🌲 Road to Mistvale Forest", "x": 1160, "y": 360, "w": 120, "h": 220, "type": "door", "targetRoom": "forest_path", "spawnX": 80, "spawnY": 450, "desc": "Dirt road heading east into Mistvale Forest." },
+      { "id": "dagger_target", "label": "🎯 Dagger Target Board", "x": 180, "y": 420, "w": 80, "h": 80, "type": "action", "action": "throw_dagger", "desc": "Wooden target board for dagger throwing drills." }
+    ]
+  },
+  "forest_path": {
+    "id": "forest_path",
+    "title": "Mistvale Forest Path & Sun Gate",
+    "desc": "A dense sun-dappled forest path. An ancient Rune Sun Gate blocks entry to Whispering Cavern.",
+    "bounds": { "xMin": 50, "xMax": 1230, "yMin": 320, "yMax": 650 },
+    "depthScale": { "yMin": 300, "yMax": 650, "minScale": 2.8, "maxScale": 5.8 },
+    "exits": {
+      "west": { "room": "town_square", "spawnX": 1140, "spawnY": 450, "msg": "Returned to Town Square." }
+    },
+    "obstacles": [
+      { "id": "obs_rock_1", "type": "polygon", "label": "🪨 Mossy Scenery Boulder", "isCutout": true, "isSolid": false, "depthY": 480, "points": [{ "x": 480, "y": 380 }, { "x": 620, "y": 350 }, { "x": 580, "y": 480 }, { "x": 400, "y": 450 }] },
+      { "id": "obs_rock_base", "type": "rect", "label": "🪨 Physical Rock Base", "isCutout": false, "isSolid": true, "x": 420, "y": 440, "w": 160, "h": 40 }
+    ],
+    "props": [
+      { "id": "prop_pine", "label": "🌲 Ancient Pine Tree", "icon": "🌲", "x": 240, "y": 450, "depthY": 450, "isInteractable": false },
+      { "id": "prop_moonflower", "label": "🌸 Moonflower Herb", "icon": "🌸", "x": 735, "y": 430, "depthY": 430, "isInteractable": true, "action": "pick_moonflower" }
+    ],
+    "hotspots": [
+      { "id": "hs_sun_gate", "label": "☀️ Rune Sun Gate (Whispering Cavern)", "x": 920, "y": 300, "w": 180, "h": 200, "type": "action", "action": "interact_sun_gate", "desc": "An ancient stone gate bearing glowing sun runes. Blocks entry to Whispering Cavern." },
+      { "id": "deep_woods", "label": "🌲 Deep Forest Grove (North Path)", "x": 550, "y": 260, "w": 180, "h": 140, "type": "door", "targetRoom": "deep_forest", "spawnX": 640, "spawnY": 620, "desc": "Path winding north into Deep Mistvale Wilderness." },
+      { "id": "moonflower", "label": "🌸 Moonflower Herb", "x": 690, "y": 400, "w": 90, "h": 80, "type": "action", "action": "pick_moonflower", "desc": "A rare glowing blue Moonflower growing near the mossy stones." },
+      { "id": "battle_goblin", "label": "👺 Goblin Spearman (Grid Combat)", "x": 380, "y": 340, "w": 140, "h": 160, "type": "combat", "enemyType": "Goblin Spearman", "desc": "A patrol of armed goblin spearmen marching in the clearing." },
+      { "id": "exit_square", "label": "🌉 Stone Bridge (Return to Town)", "x": 60, "y": 380, "w": 160, "h": 220, "type": "door", "targetRoom": "town_square", "spawnX": 1180, "spawnY": 450, "desc": "Stone bridge leading back to Spielburg Village." }
+    ]
+  }
+}

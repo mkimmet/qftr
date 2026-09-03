@@ -141,10 +141,11 @@ export class LevelEditor {
       </div>
 
       <!-- Save & Export Controls -->
-      <div style="display: flex; gap: 6px; margin-top: 8px;">
-        <button id="btn-save-room-storage" class="btn-ghibli btn-emerald" style="flex: 1; height: 36px; font-weight: 800; justify-content: center;">💾 Save to Storage</button>
-        <button id="btn-reset-room-storage" class="btn-ghibli" style="background: #a83232; color: #fff; border-color: #591515; padding: 4px 8px; font-weight: 700;">🔄 Reset Room</button>
-        <button id="btn-export-room-json" class="btn-ghibli" style="flex: 1; height: 36px; justify-content: center;">📋 Export JSON</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;">
+        <button id="btn-save-room-storage" class="btn-ghibli btn-emerald" style="height: 36px; font-weight: 800; justify-content: center;">💾 Save to Storage</button>
+        <button id="btn-export-permanent-json" class="btn-ghibli btn-sun-gold" style="height: 36px; font-weight: 800; justify-content: center; background: #d4af37; color: #291e14;">📁 Save to Permanent File</button>
+        <button id="btn-reset-room-storage" class="btn-ghibli" style="background: #a83232; color: #fff; border-color: #591515; padding: 4px 8px; font-weight: 700; height: 32px;">🔄 Reset Room</button>
+        <button id="btn-export-room-json" class="btn-ghibli" style="height: 32px; justify-content: center;">📋 Copy Room JSON</button>
       </div>
     `;
 
@@ -197,6 +198,14 @@ export class LevelEditor {
         delete allRooms[room.id];
         localStorage.setItem('qftr_custom_rooms_data', JSON.stringify(allRooms));
         location.reload();
+      });
+    }
+
+    const exportPermBtn = this.panelElement.querySelector('#btn-export-permanent-json');
+    if (exportPermBtn) {
+      exportPermBtn.addEventListener('click', () => {
+        this.gameEngine.studioPersistence.saveRoomData(room.id, room);
+        this.gameEngine.studioPersistence.exportPermanentJSON();
       });
     }
 

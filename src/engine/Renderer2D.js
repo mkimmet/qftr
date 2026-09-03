@@ -2,6 +2,7 @@ import { synth } from './SoundSynth.js';
 import { SpriteAnimation } from './SpriteAnimation.js';
 import { SkeletalPaperdoll } from './SkeletalPaperdoll.js';
 import { SkeletalGoblin } from './SkeletalGoblin.js';
+import { NPCRenderer } from './NPCRenderer.js';
 
 export class Renderer2D {
   constructor(canvas) {
@@ -20,6 +21,7 @@ export class Renderer2D {
     // Native 2D Canvas Modular Skeletal Animators
     this.skeletalPaperdoll = new SkeletalPaperdoll(this);
     this.skeletalGoblin = new SkeletalGoblin();
+    this.npcRenderer = new NPCRenderer();
 
     this.particles = [];
     this.floaters = [];
@@ -216,21 +218,12 @@ export class Renderer2D {
                 this.ctx.textAlign = 'center';
                 this.ctx.fillText(hs.label, hs.x + hs.w / 2, hs.y - 10);
               } else {
-                this.ctx.save();
-                this.ctx.fillStyle = 'rgba(0,0,0,0.35)';
-                this.ctx.beginPath();
-                this.ctx.ellipse(hs.x + hs.w / 2, hs.y + hs.h - 10, 24, 10, 0, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                this.ctx.font = '44px sans-serif';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(hs.npcId === 'zara' ? '🔮' : (hs.type === 'combat' ? '👺' : '⚔️'), hs.x + hs.w / 2, hs.y + hs.h - 20);
-
-                this.ctx.font = '700 13px "Cinzel", serif';
-                this.ctx.fillStyle = '#f4be42';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(hs.label, hs.x + hs.w / 2, hs.y + 15);
-                this.ctx.restore();
+                this.npcRenderer.drawNPC(this.ctx, {
+                  ...hs,
+                  x: hs.x + hs.w / 2,
+                  y: hs.y + hs.h - 10,
+                  scale: 3.4
+                });
               }
             }
           });
@@ -356,6 +349,32 @@ export class Renderer2D {
         this.ctx.strokeStyle = isHovered ? '#f4be42' : 'rgba(244, 200, 110, 0.45)';
         this.ctx.lineWidth = isHovered ? 2.5 : 1.2;
         this.ctx.stroke();
+
+        // Render Tactical Ground Loot Drop Pouch if present on tile!
+        const tile = combatEngine ? combatEngine.gridMap.getTile(c, r) : null;
+        if (tile && tile.loot) {
+          const loot = tile.loot;
+          const floatY = Math.sin(Date.now() * 0.006 + c + r) * 4;
+
+          // Glowing Ground Aura
+          this.ctx.save();
+          this.ctx.fillStyle = 'rgba(244, 190, 66, 0.45)';
+          this.ctx.shadowColor = '#f4be42';
+          this.ctx.shadowBlur = 12;
+          this.ctx.beginPath();
+          this.ctx.ellipse(quad.centerX, quad.centerY, 16 * quad.scale, 7 * quad.scale, 0, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          // Floating Loot Icon & Text Label
+          this.ctx.font = `${Math.round(24 * quad.scale)}px sans-serif`;
+          this.ctx.textAlign = 'center';
+          this.ctx.fillText(loot.icon || '💰', quad.centerX, quad.centerY - 8 + floatY);
+
+          this.ctx.font = '700 10px "Cinzel", serif';
+          this.ctx.fillStyle = '#f4be42';
+          this.ctx.fillText(loot.name, quad.centerX, quad.centerY + 14);
+          this.ctx.restore();
+        }
       }
     }
 

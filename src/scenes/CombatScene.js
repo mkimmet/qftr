@@ -21,6 +21,7 @@ export class CombatScene {
             <button id="btn-combat-spell" class="btn-ghibli btn-emerald">🔮 Cast Spell</button>
             <button id="btn-combat-item" class="btn-ghibli">🧪 Use Item</button>
             <button id="btn-combat-end" class="btn-ghibli btn-crimson">⌛ End Turn</button>
+            <button id="btn-combat-exit" class="btn-ghibli btn-emerald" style="display: none; font-weight: 800; padding: 8px 18px; font-size: 0.95rem;">🚪 Exit Battle Area</button>
           </div>
 
           <!-- Combat Log (The Realm Style) -->
@@ -30,10 +31,11 @@ export class CombatScene {
           </div>
         </div>
 
-        <!-- Right Side: Turn Action Points (AP) Indicator (Uncovered Top-Right position!) -->
-        <div class="parchment-card" style="position: absolute; top: 0px; right: 0px; padding: 10px 18px; pointer-events: auto; display: flex; align-items: center; gap: 12px; border: 2px solid var(--ghibli-sun-gold); box-shadow: 0 8px 20px rgba(0,0,0,0.6);">
-          <span style="font-family: var(--font-heading); font-weight: 800; color: var(--text-dark); font-size: 0.95rem;">⚡ Turn AP:</span>
+        <!-- Right Side: Turn Action Points (AP) Indicator & Combat Music Toggle -->
+        <div class="parchment-card" style="position: absolute; top: 0px; right: 0px; padding: 8px 14px; pointer-events: auto; display: flex; align-items: center; gap: 10px; border: 2px solid var(--ghibli-sun-gold); box-shadow: 0 8px 20px rgba(0,0,0,0.6);">
+          <span style="font-family: var(--font-heading); font-weight: 800; color: var(--text-dark); font-size: 0.95rem;">⚡ AP:</span>
           <div style="display: flex; gap: 6px;" id="ap-dots-container"></div>
+          <button id="btn-toggle-combat-music" class="btn-ghibli" style="padding: 2px 8px; font-size: 0.75rem; background: linear-gradient(180deg, #1d5ec9 0%, #103b82 100%); color: #fff;" title="Toggle Retro Combat Music Mute">🎵 Music</button>
         </div>
       </div>
 
@@ -66,9 +68,28 @@ export class CombatScene {
       this.combatEngine.endTurn();
     });
 
+    this.containerEl.querySelector('#btn-combat-exit').addEventListener('click', (e) => {
+      synth.playClick();
+      e.target.innerText = '⏳ Returning to World...';
+      e.target.style.opacity = '0.7';
+      if (this.gameEngine) {
+        this.gameEngine.showNotification('⏳ Returning to Spielburg Valley...');
+      }
+      this.combatEngine.exitBattle();
+    });
+
     this.containerEl.querySelector('#btn-close-spell').addEventListener('click', () => {
       this.containerEl.querySelector('#spell-modal').style.display = 'none';
     });
+
+    const musicBtn = this.containerEl.querySelector('#btn-toggle-combat-music');
+    if (musicBtn) {
+      musicBtn.addEventListener('click', () => {
+        const isMuted = synth.toggleMusicMute();
+        musicBtn.style.opacity = isMuted ? '0.5' : '1';
+        musicBtn.innerText = isMuted ? '🔇 Muted' : '🎵 Music';
+      });
+    }
 
     // Connect Combat Log callback
     this.combatEngine.onLogCallback = (msg, type) => {
@@ -149,17 +170,34 @@ export class CombatScene {
     const player = this.combatEngine.playerEntity;
     if (!player) return;
 
+    const isVictory = this.combatEngine.isVictoryPhase;
+    const btnAttack = this.containerEl.querySelector('#btn-combat-attack');
+    const btnSpell = this.containerEl.querySelector('#btn-combat-spell');
+    const btnItem = this.containerEl.querySelector('#btn-combat-item');
+    const btnEnd = this.containerEl.querySelector('#btn-combat-end');
+    const btnExit = this.containerEl.querySelector('#btn-combat-exit');
+
+    if (btnAttack) btnAttack.style.display = isVictory ? 'none' : 'inline-block';
+    if (btnSpell) btnSpell.style.display = isVictory ? 'none' : 'inline-block';
+    if (btnItem) btnItem.style.display = isVictory ? 'none' : 'inline-block';
+    if (btnEnd) btnEnd.style.display = isVictory ? 'none' : 'inline-block';
+    if (btnExit) btnExit.style.display = isVictory ? 'inline-block' : 'none';
+
     const apContainer = this.containerEl.querySelector('#ap-dots-container');
     if (apContainer) {
       apContainer.innerHTML = '';
-      for (let i = 0; i < player.maxAp; i++) {
-        const dot = document.createElement('div');
-        dot.style.width = '16px';
-        dot.style.height = '16px';
-        dot.style.borderRadius = '50%';
-        dot.style.border = '1px solid #1a7065';
-        dot.style.backgroundColor = i < player.ap ? 'var(--stat-ap)' : 'rgba(0,0,0,0.2)';
-        apContainer.appendChild(dot);
+      if (isVictory) {
+        apContainer.innerHTML = '<span style="color:#6ee3a0; font-weight:800; font-size:0.85rem;">🏆 VICTORY</span>';
+      } else {
+        for (let i = 0; i < player.maxAp; i++) {
+          const dot = document.createElement('div');
+          dot.style.width = '16px';
+          dot.style.height = '16px';
+          dot.style.borderRadius = '50%';
+          dot.style.border = '1px solid #1a7065';
+          dot.style.backgroundColor = i < player.ap ? 'var(--stat-ap)' : 'rgba(0,0,0,0.2)';
+          apContainer.appendChild(dot);
+        }
       }
     }
   }

@@ -2,12 +2,18 @@ export class InventorySystem {
   constructor() {
     this.gold = 50;
     this.equipment = {
-      weapon: null,
-      armor: null,
-      shield: null,
-      head: null,
-      ring: null,
-      baldric: null
+      shirt: { id: 'linen_shirt', name: 'Linen Undershirt', icon: '👕', type: 'equip', slot: 'shirt' },
+      pants: { id: 'leather_pants', name: 'Leather Trousers', icon: '👖', type: 'equip', slot: 'pants' },
+      shoes: { id: 'riding_boots', name: 'Leather Boots', icon: '🥾', type: 'equip', slot: 'shoes' },
+      helmet: null,
+      headband: null,
+      cowl: null,
+      cape: null,
+      baldric: null,
+      belt: { id: 'lion_belt', name: 'Gilded Lion Belt', icon: '🥋', type: 'equip', slot: 'belt' },
+      amulet: null,
+      weapon: { id: 'iron_sword', name: 'Iron Broadsword', icon: '🗡️', type: 'equip', slot: 'weapon' },
+      shield: null
     };
 
     this.items = [
@@ -15,15 +21,45 @@ export class InventorySystem {
       { id: 'hp_potion', name: 'Healing Elixir', count: 3, icon: '🧪', type: 'consumable', desc: 'Restores 30 Health Points.' },
       { id: 'mp_potion', name: 'Mana Essence', count: 2, icon: '💧', type: 'consumable', desc: 'Restores 25 Mana Points.' },
       { id: 'lockpick', name: 'Thief Lockpicks', count: 1, icon: '🗝️', type: 'tool', desc: 'Essential tool for picking locks.' },
-      { id: 'iron_sword', name: 'Iron Broadsword', count: 1, icon: '🗡️', type: 'equip', slot: 'weapon', weaponDamage: 12, statBonus: { strength: 5, weaponry: 5 }, desc: 'A sharp broadsword (+12 Weapon Damage, +5 Strength).' },
-      { id: 'arcane_wand', name: 'Arcane Staff', count: 1, icon: '🪄', type: 'equip', slot: 'weapon', weaponDamage: 8, statBonus: { magic: 8, intelligence: 5 }, desc: 'Woven with blue runes (+8 Magic, +5 Intelligence).' },
-      { id: 'leather_armor', name: 'Leather Cuirass', count: 1, icon: '🛡️', type: 'equip', slot: 'armor', armorDef: 4, statBonus: { parry: 5 }, desc: 'Sturdy boiled leather armor (+4 Armor Def, +5 Parry).' },
-      { id: 'iron_helm', name: 'Iron Coif Helm', count: 1, icon: '🪖', type: 'equip', slot: 'head', armorDef: 3, statBonus: { parry: 4 }, desc: 'Forged iron coif helmet (+3 Armor Def, +4 Parry).' },
-      { id: 'ring_agility', name: 'Ring of Agility', count: 1, icon: '💍', type: 'equip', slot: 'ring', statBonus: { agility: 6 }, desc: 'An enchanted silver ring (+6 Agility).' },
-      { id: 'scarlet_baldric', name: 'Scarlet Guard Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#b82531', statBonus: { strength: 6, weaponry: 5 }, desc: 'Crimson over-the-shoulder baldric worn by elite Blood Guard warriors (+6 Strength, +5 Weaponry).' },
-      { id: 'sapphire_baldric', name: 'Sapphire Arch-Mage Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#1d5ec9', statBonus: { magic: 8, intelligence: 5 }, desc: 'Royal blue silk baldric with gold rune insignia (+8 Magic, +5 Intelligence).' },
-      { id: 'emerald_baldric', name: 'Emerald Ranger Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#387654', statBonus: { agility: 6, stealth: 5 }, desc: 'Forest green leather sash worn by Spielburg Trackers (+6 Agility, +5 Stealth).' },
-      { id: 'gold_baldric', name: 'Sun Gold Champion Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#f4be42', statBonus: { strength: 4, agility: 4, magic: 4, parry: 8 }, desc: 'Radiant gold baldric awarded to Champions of the Realm (+4 All Stats, +8 Parry).' }
+      
+      // Headband / Circlet Slot
+      { id: 'gold_headband', name: 'Gold Champion Circlet', count: 1, icon: '👑', type: 'equip', slot: 'headband', statBonus: { magic: 5, parry: 3 }, desc: 'Gold filigree champion circlet (+5 Magic, +3 Parry).' },
+      
+      // Cape Slot
+      { id: 'scarlet_cape', name: 'Scarlet Flowing Cape', count: 1, icon: '🦹', type: 'equip', slot: 'cape', color: '#8b2626', statBonus: { parry: 4 }, desc: 'Crimson silk flowing cape (+4 Parry).' },
+      { id: 'shadow_cape', name: 'Shadow Violet Cape', count: 1, icon: '🦹', type: 'equip', slot: 'cape', color: '#1c1524', statBonus: { stealth: 6 }, desc: 'Dark velvet shadow cape (+6 Stealth).' },
+      { id: 'gold_cape', name: 'Champion Sun Cape', count: 1, icon: '🦹', type: 'equip', slot: 'cape', color: '#f4be42', statBonus: { strength: 4, magic: 4 }, desc: 'Radiant golden champion cape (+4 Str, +4 Mag).' },
+      
+      // Shirt Slot
+      { id: 'linen_shirt', name: 'Linen Undershirt', count: 1, icon: '👕', type: 'equip', slot: 'shirt', desc: 'Comfortable woven linen shirt.' },
+      { id: 'iron_breastplate', name: 'Steel Breastplate', count: 1, icon: '🛡️', type: 'equip', slot: 'shirt', armorDef: 8, statBonus: { strength: 4 }, desc: 'Forged steel chestplate armor (+8 Defense, +4 Strength).' },
+
+      // Pants Slot
+      { id: 'leather_pants', name: 'Leather Trousers', count: 1, icon: '👖', type: 'equip', slot: 'pants', armorDef: 2, desc: 'Flexible leather riding trousers (+2 Defense).' },
+      { id: 'silk_robe_skirt', name: 'Arcane Robe Skirt', count: 1, icon: '👘', type: 'equip', slot: 'pants', statBonus: { magic: 6 }, desc: 'Woven sapphire silk robe skirt (+6 Magic).' },
+
+      // Shoes Slot
+      { id: 'riding_boots', name: 'Leather Boots', count: 1, icon: '🥾', type: 'equip', slot: 'shoes', armorDef: 1, desc: 'Durable leather traveling boots (+1 Defense).' },
+      { id: 'steel_sabatons', name: 'Armored Sabatons', count: 1, icon: '🥾', type: 'equip', slot: 'shoes', armorDef: 4, desc: 'Heavy steel armored sabatons (+4 Defense).' },
+
+      // Helmet Slot
+      { id: 'iron_helm', name: 'Iron Coif Helm', count: 1, icon: '🪖', type: 'equip', slot: 'helmet', armorDef: 3, statBonus: { parry: 4 }, desc: 'Forged iron coif helmet (+3 Armor Def, +4 Parry).' },
+      { id: 'wizard_hat', name: 'Wizard Conical Hat', count: 1, icon: '🧙', type: 'equip', slot: 'helmet', statBonus: { magic: 8 }, desc: 'High wizard conical hat (+8 Magic).' },
+
+      // Cowl Slot
+      { id: 'thief_cowl', name: 'Shadow Thief Cowl', count: 1, icon: '🥷', type: 'equip', slot: 'cowl', statBonus: { stealth: 8 }, desc: 'Dark hood cowl for silent sneaking (+8 Stealth).' },
+      
+      // Belt Slot
+      { id: 'lion_belt', name: 'Gilded Lion Belt', count: 1, icon: '🥋', type: 'equip', slot: 'belt', armorDef: 1, statBonus: { strength: 3 }, desc: 'Leather belt with a carved lion buckle (+3 Strength).' },
+
+      // Amulet Slot
+      { id: 'ruby_amulet', name: 'Ruby Heart Pendant', count: 1, icon: '📿', type: 'equip', slot: 'amulet', statBonus: { maxHp: 20 }, desc: 'Enchanted ruby necklace (+20 Max HP).' },
+      { id: 'sapphire_pendant', name: 'Sapphire Mana Pendant', count: 1, icon: '📿', type: 'equip', slot: 'amulet', statBonus: { maxMp: 25 }, desc: 'Glowing blue crystal pendant (+25 Max MP).' },
+
+      // Weapons, Shields & Baldrics
+      { id: 'iron_sword', name: 'Iron Broadsword', count: 1, icon: '🗡️', type: 'equip', slot: 'weapon', weaponDamage: 12, statBonus: { strength: 5, weaponry: 5 }, desc: 'A sharp broadsword (+12 Damage, +5 Strength).' },
+      { id: 'paladin_shield', name: 'Paladin Gold Shield', count: 1, icon: '🛡️', type: 'equip', slot: 'shield', armorDef: 6, statBonus: { parry: 8 }, desc: 'Gold kite shield (+6 Defense, +8 Parry).' },
+      { id: 'scarlet_baldric', name: 'Scarlet Guard Baldric', count: 1, icon: '🎽', type: 'equip', slot: 'baldric', color: '#b82531', statBonus: { strength: 6 }, desc: 'Crimson over-the-shoulder baldric (+6 Strength).' }
     ];
   }
 
