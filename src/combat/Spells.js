@@ -70,5 +70,76 @@ export const SPELL_CATALOG = {
     icon: '🔓',
     vfx: 'open',
     desc: 'Magically unlocks locked doors, chests, or barriers.'
+  },
+
+  // ⚔️ Fighter Abilities
+  power_slash: {
+    id: 'power_slash',
+    name: 'Power Cleave Slash',
+    mpCost: 0,
+    apCost: 3,
+    range: 1,
+    aoe: 'single',
+    damage: [22, 35],
+    icon: '🗡️',
+    vfx: 'cleave',
+    reqClass: 'Fighter',
+    desc: 'Heavy two-handed strike dealing +40% bonus damage and screen shake!'
+  },
+  shield_bash: {
+    id: 'shield_bash',
+    name: 'Shield Bash',
+    mpCost: 0,
+    apCost: 3,
+    range: 1,
+    aoe: 'single',
+    damage: [10, 16],
+    stun: true,
+    knockback: 1,
+    icon: '🛡️',
+    vfx: 'bash',
+    reqClass: 'Fighter',
+    desc: 'Stuns enemy and knocks them back 1 grid tile.'
+  },
+  parry_stance: {
+    id: 'parry_stance',
+    name: 'Parry Riposte Stance',
+    mpCost: 0,
+    apCost: 2,
+    range: 0,
+    aoe: 'single',
+    statBuff: { parry: 40 },
+    icon: '🤺',
+    vfx: 'parry',
+    reqClass: 'Fighter',
+    desc: 'Defensive stance granting +40 Parry to counter enemy strikes.'
+  },
+
+  // 🗝️ Thief Abilities
+  dagger_throw: {
+    id: 'dagger_throw',
+    name: 'Precision Dagger Throw',
+    mpCost: 0,
+    apCost: 2,
+    range: 4,
+    aoe: 'single',
+    damage: [12, 18],
+    icon: '🎯',
+    vfx: 'dagger',
+    reqClass: 'Thief',
+    desc: 'Hurls a throwing dagger at an enemy up to 4 tiles away.'
+  },
+  stealth_backstab: {
+    id: 'stealth_backstab',
+    name: 'Shadow Backstab Strike',
+    mpCost: 0,
+    apCost: 3,
+    range: 1,
+    aoe: 'single',
+    damage: [24, 38],
+    icon: '🗡️',
+    vfx: 'backstab',
+    reqClass: 'Thief',
+    desc: 'Devastating critical strike dealing massive backstab damage.'
   }
 };

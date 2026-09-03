@@ -114,49 +114,25 @@ export class CombatScene {
     const spellModal = this.containerEl.querySelector('#spell-modal');
     const spellList = this.containerEl.querySelector('#spell-list-container');
     spellList.innerHTML = '';
+    spellModal.style.width = '380px';
+
+    const heroClass = this.gameEngine?.statSystem?.heroClass || 'Fighter';
 
     Object.values(SPELL_CATALOG).forEach(spell => {
+      const isReqMet = !spell.reqClass || spell.reqClass === heroClass || heroClass.includes(spell.reqClass);
+      if (!isReqMet && spell.mpCost > 0) return; // Only filter class-specific physical skills
+
       const btn = document.createElement('button');
       btn.className = 'btn-ghibli';
-      btn.style.justifyContent = 'space-between';
+      btn.style.justify = 'space-between';
       btn.style.fontSize = '0.9rem';
-      btn.innerHTML = `<span>${spell.icon} ${spell.name} (${spell.apCost} AP)</span><span style="color:#1d5ec9;">${spell.mpCost} MP</span>`;
-
-      if (this.combatEngine.player.hp <= 0) {
-        synth.playHit();
-        const dialogueLayer = document.getElementById('dialogue-layer');
-        dialogueLayer.style.display = 'flex';
-        dialogueLayer.innerHTML = `
-          <div class="dialogue-modal parchment-card" style="width: 620px; text-align: center;">
-            <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: #a83232; margin-bottom: 8px;">
-              💀 YOU HAVE DIED!
-            </div>
-            <div style="font-size: 1.05rem; color: var(--text-dark); line-height: 1.6; margin-bottom: 20px;">
-              "You should have spent more time practicing your Parry and Dodge skills at the Guildhall straw dummy! Spielburg Valley falls to darkness..."
-            </div>
-
-            <div style="display: flex; gap: 12px; justify-content: center;">
-              <button id="btn-respawn-town" class="btn-ghibli btn-emerald" style="padding: 12px 24px; font-weight: 800; font-size: 1rem;">🔄 Respawn at Town Square (Full HP)</button>
-            </div>
-          </div>
-        `;
-
-        dialogueLayer.querySelector('#btn-respawn-town').addEventListener('click', () => {
-          dialogueLayer.style.display = 'none';
-          this.combatEngine.player.hp = this.combatEngine.player.maxHp;
-          this.combatEngine.player.mp = this.combatEngine.player.maxMp;
-          this.gameEngine.explorationScene.changeRoom('town_square', 650, 450);
-          this.gameEngine.switchMode('exploration');
-          synth.playStatUp();
-          this.gameEngine.showNotification('✨ Respawned at Spielburg Town Square with Full HP & MP!');
-        });
-        return;
-      }
+      btn.style.padding = '8px 12px';
+      btn.innerHTML = `<span>${spell.icon} ${spell.name} (${spell.apCost} AP)</span><span style="color:${spell.mpCost > 0 ? '#1d5ec9' : '#8c5a14'}; font-weight:800;">${spell.mpCost > 0 ? spell.mpCost + ' MP' : 'Skill'}</span>`;
 
       btn.addEventListener('click', () => {
         synth.playClick();
         this.combatEngine.selectedSpell = spell;
-        this.combatEngine.addLog(`Selected ${spell.name}. Click target enemy on tactical grid to cast!`, 'spell');
+        this.combatEngine.addLog(`Selected ${spell.name}. Click target tile/enemy on grid to execute!`, 'spell');
         spellModal.style.display = 'none';
       });
 

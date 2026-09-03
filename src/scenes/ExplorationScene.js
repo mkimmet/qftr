@@ -1,6 +1,7 @@
 import { synth } from '../engine/SoundSynth.js';
 import { Pathfinder2D } from '../engine/Pathfinder2D.js';
 import { NPCRenderer } from '../engine/NPCRenderer.js';
+import { LockpickMinigame } from '../engine/LockpickMinigame.js';
 import dialoguesData from '../data/dialogues.json';
 
 export class ExplorationScene {
@@ -11,6 +12,7 @@ export class ExplorationScene {
     this.isSunGateUnlocked = false;
     this.npcRenderer = new NPCRenderer();
     this.dialogues = dialoguesData;
+    this.lockpickMinigame = new LockpickMinigame(this.gameEngine);
 
     // Background Images for Rooms
     this.bgImages = {
@@ -289,10 +291,20 @@ export class ExplorationScene {
     if (this.activeVerb === 'talk') {
       this.gameEngine.showNotification('Talking to yourself won\'t help much!');
     } else if (this.activeVerb === 'do' || hit.type === 'door' || hit.type === 'combat') {
+      if (hit.action === 'pick_lock' || hit.id.includes('vault') || hit.id.includes('gate_lock')) {
+        this.lockpickMinigame.startMinigame(hit.label, () => {
+          this.gameEngine.sierraScoreSystem.addPoints('pick_lock', 25, `picking the lock on ${hit.label}`);
+          this.gameEngine.statSystem.practiceStat('stealth', 20);
+          this.gameEngine.showNotification(`🗝️ UNLOCKED: Successfully picked the lock on ${hit.label}! (+25 Sierra Points)`);
+          if (hit.targetRoom) this.changeRoom(hit.targetRoom, hit.spawnX || 300, hit.spawnY || 450);
+        });
+        return;
+      }
+
       if (hit.type === 'door') {
         this.changeRoom(hit.targetRoom, hit.spawnX, hit.spawnY);
       } else if (hit.type === 'action') {
-        this.handleSpecialAction(hit.action);
+        this.handleSpecialAction(hit.action, hit);
       } else if (hit.type === 'combat') {
         this.gameEngine.startCombatMode(hit.enemyType);
       }
@@ -300,6 +312,7 @@ export class ExplorationScene {
       if (this.gameEngine.statSystem.stats.magic > 0) {
         synth.playSpell();
         this.gameEngine.statSystem.practiceStat('magic', 20);
+        this.gameEngine.renderer2D.spawnSpellParticleEffect('Open', hit.x + hit.w / 2, hit.y + hit.h / 2);
         this.gameEngine.showNotification(`🪄 Cast Open / Fetch spell on ${hit.label}! (+Magic XP)`);
         if (hit.action === 'interact_sun_gate') {
           this.isSunGateUnlocked = true;
