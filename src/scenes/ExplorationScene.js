@@ -246,33 +246,156 @@ export class ExplorationScene {
     const room = this.getCurrentRoomData();
     const hit = room.hotspots.find(hs => x >= hs.x && x <= hs.x + hs.w && y >= hs.y && y <= hs.y + hs.h);
 
-    if (this.activeVerb === 'look') {
-      if (hit) {
-        this.gameEngine.showNotification(`👁️ LOOK: ${hit.desc}`);
-      } else {
-        this.gameEngine.showNotification(`👁️ LOOK: ${room.desc}`);
-      }
-      return;
-    }
-
-    if (this.activeVerb === 'walk' || !hit) {
+    // Empty Ground Tap: Walk directly to target location
+    if (!hit) {
       const path = Pathfinder2D.findPath(heroPos.x, heroPos.y, x, y, room.obstacles, room.bounds);
       this.gameEngine.startWalkingPath(path);
       return;
     }
 
+    // Direct Verb Mode (if specific verb selected)
+    if (this.activeVerb === 'look') {
+      this.gameEngine.showNotification(`👁️ LOOK: ${hit.desc}`);
+      return;
+    }
+
+    // Touchscreen / iPad Target Popup Action Modal!
+    this.showTargetActionModal(hit, heroPos);
+  }
+
+  showTargetActionModal(hit, heroPos) {
+    synth.playClick();
+    const dialogueLayer = document.getElementById('dialogue-layer');
+    if (!dialogueLayer) return;
+
+    const isNPC = hit.type === 'npc';
+    const isDoor = hit.type === 'door';
+    const isCombat = hit.type === 'combat';
+
+    dialogueLayer.style.display = 'flex';
+    dialogueLayer.innerHTML = `
+      <div class="dialogue-modal parchment-card" style="width: 440px; max-width: 90vw; text-align: center; border: 3px solid var(--parchment-border); box-shadow: 0 20px 50px rgba(0,0,0,0.9); pointer-events: auto; padding: 20px;">
+        
+        <!-- Header & Target Name -->
+        <div style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: #543714; margin-bottom: 6px; border-bottom: 2px solid var(--parchment-border); padding-bottom: 8px;">
+          ${hit.label}
+        </div>
+        <div style="font-size: 0.88rem; color: var(--text-dark); margin-bottom: 16px; line-height: 1.4;">
+          ${hit.desc}
+        </div>
+
+        <!-- Action Options -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+          
+          <!-- Primary Context Action -->
+          ${isNPC ? `
+            <button id="btn-popup-primary" class="btn-ghibli btn-emerald" style="padding: 10px; font-size: 0.95rem; font-weight: 800; justify-content: center;">💬 Speak with ${hit.label}</button>
+          ` : isDoor ? `
+            <button id="btn-popup-primary" class="btn-ghibli btn-emerald" style="padding: 10px; font-size: 0.95rem; font-weight: 800; justify-content: center;">🚪 Enter (${hit.label})</button>
+          ` : isCombat ? `
+            <button id="btn-popup-primary" class="btn-ghibli btn-crimson" style="padding: 10px; font-size: 0.95rem; font-weight: 800; justify-content: center;">⚔️ Fight (${hit.enemyType || hit.label})</button>
+          ` : `
+            <button id="btn-popup-primary" class="btn-ghibli btn-emerald" style="padding: 10px; font-size: 0.95rem; font-weight: 800; justify-content: center;">🖐️ Interact with ${hit.label}</button>
+          `}
+
+          <!-- Look / Inspect Button -->
+          <button id="btn-popup-look" class="btn-ghibli" style="padding: 8px; font-size: 0.9rem; justify-content: center;">👁️ Inspect / Look at Target</button>
+
+          <!-- Cast Spell Button -->
+          <button id="btn-popup-spell" class="btn-ghibli" style="padding: 8px; font-size: 0.9rem; justify-content: center; color: #1d5ec9;">🔮 Cast Magic / Open Spell</button>
+
+          <!-- Lockpicking Button for Doors/Vaults -->
+          ${(isDoor || hit.id.includes('vault') || hit.action === 'interact_sun_gate') ? `
+            <button id="btn-popup-lockpick" class="btn-ghibli" style="padding: 8px; font-size: 0.9rem; justify-content: center; color: #8c5a14;">🗝️ Pick Lock (Thief Minigame)</button>
+          ` : ''}
+
+          <!-- Walk Over Button -->
+          <button id="btn-popup-walk" class="btn-ghibli" style="padding: 8px; font-size: 0.9rem; justify-content: center;">🚶 Walk Over to Target</button>
+        </div>
+
+        <button id="btn-popup-cancel" class="btn-ghibli" style="width: 100%; height: 38px; justify-content: center; font-size: 0.9rem;">Close</button>
+      </div>
+    `;
+
+    const closePopup = () => { dialogueLayer.style.display = 'none'; };
+
+    dialogueLayer.querySelector('#btn-popup-primary').addEventListener('click', () => {
+      closePopup();
+      this.walkAndExecute(hit, heroPos);
+    });
+
+    dialogueLayer.querySelector('#btn-popup-look').addEventListener('click', () => {
+      closePopup();
+      this.gameEngine.showNotification(`👁️ LOOK: ${hit.desc}`);
+    });
+
+    dialogueLayer.querySelector('#btn-popup-spell').addEventListener('click', () => {
+      closePopup();
+      this.walkAndExecute(hit, heroPos, 'cast');
+    });
+
+    const lockpickBtn = dialogueLayer.querySelector('#btn-popup-lockpick');
+    if (lockpickBtn) {
+      lockpickBtn.addEventListener('click', () => {
+        closePopup();
+        this.lockpickMinigame.startMinigame(hit.label, () => {
+          this.gameEngine.sierraScoreSystem.addPoints('pick_lock', 25, `picking the lock on ${hit.label}`);
+          this.gameEngine.statSystem.practiceStat('stealth', 20);
+          this.gameEngine.showNotification(`🗝️ UNLOCKED: Successfully picked lock! (+25 Sierra Points)`);
+          if (hit.targetRoom) this.changeRoom(hit.targetRoom, hit.spawnX || 300, hit.spawnY || 450);
+        });
+      });
+    }
+
+    dialogueLayer.querySelector('#btn-popup-walk').addEventListener('click', () => {
+      closePopup();
+      const targetCenterX = hit.x + hit.w / 2;
+      const targetCenterY = hit.y + hit.h / 2;
+      const path = Pathfinder2D.findPath(heroPos.x, heroPos.y, targetCenterX, targetCenterY + 40, this.getCurrentRoomData().obstacles, this.getCurrentRoomData().bounds);
+      this.gameEngine.startWalkingPath(path);
+    });
+
+    dialogueLayer.querySelector('#btn-popup-cancel').addEventListener('click', closePopup);
+  }
+
+  walkAndExecute(hit, heroPos, overrideVerb = null) {
     const targetCenterX = hit.x + hit.w / 2;
     const targetCenterY = hit.y + hit.h / 2;
     const dist = Math.hypot(heroPos.x - targetCenterX, heroPos.y - targetCenterY);
 
     if (dist > 180) {
       this.gameEngine.showNotification('🚶 Walking over to target...');
-      const path = Pathfinder2D.findPath(heroPos.x, heroPos.y, targetCenterX, targetCenterY + 40, room.obstacles, room.bounds);
+      const path = Pathfinder2D.findPath(heroPos.x, heroPos.y, targetCenterX, targetCenterY + 40, this.getCurrentRoomData().obstacles, this.getCurrentRoomData().bounds);
       this.gameEngine.startWalkingPath(path, () => {
-        this.executeInteraction(hit);
+        if (overrideVerb === 'cast') {
+          this.executeCastSpell(hit);
+        } else {
+          this.executeInteraction(hit);
+        }
       });
     } else {
-      this.executeInteraction(hit);
+      if (overrideVerb === 'cast') {
+        this.executeCastSpell(hit);
+      } else {
+        this.executeInteraction(hit);
+      }
+    }
+  }
+
+  executeCastSpell(hit) {
+    if (this.gameEngine.statSystem.stats.magic > 0) {
+      synth.playSpell();
+      this.gameEngine.statSystem.practiceStat('magic', 20);
+      this.gameEngine.renderer2D.spawnSpellParticleEffect('Open', hit.x + hit.w / 2, hit.y + hit.h / 2);
+      this.gameEngine.showNotification(`🪄 Cast Open / Fetch spell on ${hit.label}! (+Magic XP)`);
+      if (hit.action === 'interact_sun_gate') {
+        this.isSunGateUnlocked = true;
+        this.gameEngine.sierraScoreSystem.addPoints('sun_gate_spell', 25, 'unsealing the Rune Sun Gate with Open spell');
+        this.gameEngine.showNotification('✨ OPEN SPELL UNSEALED THE RUNE SUN GATE! Access to Whispering Cavern unlocked!');
+        this.changeRoom('goblin_camp', 200, 480);
+      }
+    } else {
+      this.gameEngine.showNotification('You don\'t know any magic spells yet! (Magic stat is 0)');
     }
   }
 
